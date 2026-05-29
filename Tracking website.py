@@ -15,9 +15,9 @@ st.set_page_config(
 )
 
 # 图片路径
-ZOWIE_LOGO_PATH = r"C:\Users\donny.d.huang\PycharmProjects\PythonProject\AI\cs2_mouse_site\assets\zowie_logo.png"
-HERO_MOUSE_PATH = r"C:\Users\donny.d.huang\PycharmProjects\PythonProject\AI\cs2_mouse_site\assets\hero_mouse.png"
-EXCEL_PATH = r"C:\Users\donny.d.huang\.openclaw\workspace\memory\cs2_mouse_tracking.xlsx"
+EXCEL_PATH = "cs2_mouse_tracking.xlsx"
+ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
+HERO_MOUSE_PATH = "assets/hero_mouse.png"
 
 # 自定义 CSS 样式
 st.markdown("""
