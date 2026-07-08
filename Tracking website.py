@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 # 图片路径
-EXCEL_PATH = r"C:\Users\donny.d.huang\.openclaw\workspace\memory\cs2_mouse_tracking.xlsx"
+EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx"
 ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
 HERO_MOUSE_PATH = "assets/hero_mouse.png"
 
