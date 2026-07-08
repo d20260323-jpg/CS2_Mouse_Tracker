@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 # 图片路径
-EXCEL_PATH = "cs2_mouse_tracking.xlsx"
+EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx"
 ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
 HERO_MOUSE_PATH = "assets/hero_mouse.png"
 
@@ -188,11 +188,13 @@ def get_base64_image(path):
 # ==========================================
 @st.cache_data(ttl=300)
 def load_data():
-    if not os.path.exists(EXCEL_PATH):
-        st.error(f"❌ 找不到数据文件: {EXCEL_PATH}")
-        return None, None
     try:
         df_all = pd.read_excel(EXCEL_PATH)
+    except Exception as e:
+        st.error(f"❌ 无法读取数据文件: {EXCEL_PATH}\n错误详情: {e}")
+        return None, None
+
+    try:
         # 处理日期格式，兼容带秒数的情况
         df_all['QueryTime'] = pd.to_datetime(df_all['QueryTime'], errors='coerce', format='mixed')
 
