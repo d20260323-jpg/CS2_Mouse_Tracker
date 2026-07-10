@@ -4,7 +4,7 @@ import os
 import plotly.express as px
 import base64
 from PIL import Image
-#python -m streamlit run "C:\Users\donny.d.huang\PycharmProjects\PythonProject\AI\cs2_mouse_site\Tracking website.py"
+#python -m streamlit run "C:\Users\donny.d.huang\Desktop\Tracking website.py"
 # ==========================================
 # 1. 页面配置与高清电竞风 CSS
 # ==========================================
@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 # 图片路径
-EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx"
+EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx" #0708更改：路径换成github上数据库文件地址
 ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
 HERO_MOUSE_PATH = "assets/hero_mouse.png"
 
@@ -187,7 +187,7 @@ def get_base64_image(path):
 # 2. 数据处理与缓存 (仅统计最后 23 行)
 # ==========================================
 @st.cache_data(ttl=300)
-def load_data():
+def load_data():                     #0708:有做调整不会出现Github上运行报错的情况
     try:
         df_all = pd.read_excel(EXCEL_PATH)
     except Exception as e:
