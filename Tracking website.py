@@ -342,14 +342,15 @@ st.markdown("""
     margin-top: 10px;
 }
 
-/* 下拉框 hover 效果（兼容多版本 Streamlit） */
-div[data-baseweb="select"] > div {
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-div[data-baseweb="select"] > div:hover {
+/* 下拉框 hover —— 全兼容暴力版 */
+div[data-baseweb="select"]:hover,
+div[data-baseweb="select"] > div:hover,
+div[data-baseweb="select"] div:hover,
+[class*="stSelectbox"] div:hover,
+[class*="stSelectbox"]:hover {
     border-color: #E02020 !important;
     box-shadow: 0 0 0 1px #E02020 !important;
+    cursor: pointer !important;
 }
 </style>
 """, unsafe_allow_html=True)
