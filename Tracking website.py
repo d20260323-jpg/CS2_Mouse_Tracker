@@ -309,9 +309,10 @@ st.markdown("""
     
     /* 鼠标图片发光效果 */
     .hero-img {
-        filter: drop-shadow(0 0 20px rgba(224, 32, 32, 0.4));
-        max-width: 100%;
-        height: auto;
+    filter: drop-shadow(0 0 20px rgba(224, 32, 32, 0.4));
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;        /* ← 加这行，图片带圆角 */
     }
 
     .briefing-card {
