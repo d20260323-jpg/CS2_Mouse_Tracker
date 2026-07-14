@@ -438,12 +438,17 @@ def main():
                 <div style="margin-top:40px; display:flex; gap:30px;">
                     <div>
                         <div style="color:#E02020; font-size:32px; font-weight:bold;">TRACK.</div>
+                        <div style="color:#666; font-size:13px; letter-spacing:1px;">PRO PLAYERS</div>
                     </div>
                     <div>
                         <div style="color:#E02020; font-size:32px; font-weight:bold;">ANALYZE.</div>
+                        <div style="color:#666; font-size:13px; letter-spacing:1px;">YEARS TRACKED</div>
                     </div>
                     <div>
                         <div style="color:#E02020; font-size:32px; font-weight:bold;">DOMINATE.</div>
+                        <div style="color:#666; font-size:13px; letter-spacing:1px;">LIVE SYNC</div>
+                    </div>
+                </div>
                     </div>
                 </div>
             </div>
