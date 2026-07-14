@@ -342,14 +342,11 @@ st.markdown("""
     margin-top: 10px;
 }
 
-/* 下拉框（selectbox）hover 效果 */
-.stSelectbox div[data-baseweb="select"] > div {
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-.stSelectbox div[data-baseweb="select"] > div:hover {
+/* 下拉框 hover —— 针对 react-aria ComboBox */
+.react-aria-ComboBox > div:hover {
     border-color: #E02020 !important;
     box-shadow: 0 0 0 1px #E02020 !important;
+    cursor: pointer !important;
 }
 </style>
 """, unsafe_allow_html=True)
