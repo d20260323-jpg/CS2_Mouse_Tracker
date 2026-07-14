@@ -342,8 +342,8 @@ st.markdown("""
     margin-top: 10px;
 }
 
-/* 下拉框 hover */
-div[data-baseweb="select"] > div:hover {
+/* 下拉框 hover —— 针对 react-aria ComboBox */
+.react-aria-ComboBox > div:hover {
     border-color: #E02020 !important;
     box-shadow: 0 0 0 1px #E02020 !important;
     cursor: pointer !important;
