@@ -708,6 +708,36 @@ def main():
         st.session_state['trend_groups'] = [{'id': 0, 'name': '', 'mice': top1}]
         st.session_state['trend_group_id_counter'] = 1
 
+    # 确认弹窗：清空所有组
+    @st.dialog("确认清空所有组")
+    def confirm_clear_all_groups():
+        st.warning("确定要清空所有对比组吗？此操作不可撤销。")
+        d1, d2 = st.columns(2)
+        with d1:
+            if st.button("确认清空", key="do_clear_all", use_container_width=True, type="primary"):
+                st.session_state['trend_groups'] = []
+                st.rerun()
+        with d2:
+            if st.button("取消", key="cancel_clear_all", use_container_width=True):
+                st.rerun()
+
+    # 确认弹窗：清空某一组
+    @st.dialog("确认清空本组")
+    def confirm_clear_group(target_gid, target_name):
+        st.warning(f"确定要清空「{target_name}」这一组的所有已选鼠标吗？")
+        d1, d2 = st.columns(2)
+        with d1:
+            if st.button("确认清空", key=f"do_clear_{target_gid}", use_container_width=True, type="primary"):
+                for mouse in all_mice:
+                    st.session_state[f"mouse_{target_gid}_{mouse}"] = False
+                for g in st.session_state['trend_groups']:
+                    if g['id'] == target_gid:
+                        g['mice'] = []
+                st.rerun()
+        with d2:
+            if st.button("取消", key=f"cancel_clear_{target_gid}", use_container_width=True):
+                st.rerun()
+
     cc1, cc2, _ = st.columns([1, 1, 4])
     with cc1:
         if st.button("➕ 添加对比鼠标"):
@@ -718,8 +748,7 @@ def main():
 
     with cc2:
         if st.button("🗑 清空所有组"):
-            st.session_state['trend_groups'] = []
-            st.rerun()
+            confirm_clear_all_groups()
 
     group_to_delete = None
 
@@ -728,7 +757,6 @@ def main():
 
         # ★修复1：在画标题之前，先直接从session_state读这个组当前真实勾选状态，
         # 而不是用上一轮遗留的group['mice']——这样标题里的"已选X个"才不会慢一拍。
-        # session_state里的checkbox值在这一轮rerun开始时就已经是最新的了。
         synced_mice = set()
         for m in all_mice:
             ckey = f"mouse_{gid}_{m}"
@@ -736,7 +764,6 @@ def main():
                 if st.session_state[ckey]:
                     synced_mice.add(m)
             elif m in group['mice']:
-                # 这个mouse这一轮还没渲染过checkbox（比如还没搜索到），保留原有勾选
                 synced_mice.add(m)
         group['mice'] = list(synced_mice)
 
@@ -748,11 +775,10 @@ def main():
         else:
             display_name = f"鼠标{display_index}"  # 都没有才用占位名
 
-        # ★修复2：expander用固定的key（绑定gid），不再依赖会变化的标题文字，
-        # 这样用户手动折叠/展开的状态不会因为标题里数字变化或加了新组而被重置。
+        # ★修复2：expander用固定的key（绑定gid），不再依赖会变化的标题文字
         expander_key = f"expander_{gid}"
         if expander_key not in st.session_state:
-            st.session_state[expander_key] = True  # 只在第一次出现时给默认展开
+            st.session_state[expander_key] = True
 
         with st.expander(
                 f"[点击收起]\n📊 {display_name}（已选 {len(group['mice'])} 个型号）",
@@ -771,7 +797,6 @@ def main():
 
             if kw:
                 search_terms = expand_mouse_keyword(kw)
-
                 filtered_mice = [
                     m for m in all_mice
                     if any(term in m.lower() for term in search_terms)
@@ -794,21 +819,15 @@ def main():
 
             with c2:
                 if st.button("清空本组鼠标", key=f"clear_group_{gid}"):
-                    for mouse in all_mice:
-                        st.session_state[f"mouse_{gid}_{mouse}"] = False
-                    group["mice"] = []
-                    st.rerun()
+                    confirm_clear_group(gid, display_name)
 
             selected_now = set(group["mice"])
 
             for mouse in filtered_mice[:100]:
                 key = f"mouse_{gid}_{mouse}"
-
                 if key not in st.session_state:
                     st.session_state[key] = mouse in selected_now
-
                 checked = st.checkbox(mouse, key=key)
-
                 if checked:
                     selected_now.add(mouse)
                 else:
@@ -866,9 +885,9 @@ def main():
             paper_bgcolor='rgba(0,0,0,0)',
             font_color='white',
             height=420,
-            margin=dict(t=30),  # ← 顶部留空间给横排标题
+            margin=dict(t=30),
             xaxis_title='Date',
-            yaxis_title=None,  # ← 关掉竖排"使用人数"
+            yaxis_title=None,
             legend=dict(
                 bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#FFFFFF'),
@@ -877,7 +896,7 @@ def main():
             )
         )
 
-        fig2.add_annotation(  # ← 横排"使用人数"放Y轴上方
+        fig2.add_annotation(
             text="使用人数",
             xref="paper", yref="paper",
             x=0, y=1.05,
