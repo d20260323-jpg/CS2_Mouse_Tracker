@@ -342,12 +342,12 @@ st.markdown("""
     margin-top: 10px;
 }
 
-/* 下拉框（selectbox）hover 效果 */
-.stSelectbox div[data-baseweb="select"] > div {
+/* 下拉框 hover 效果（兼容多版本 Streamlit） */
+div[data-baseweb="select"] > div {
     transition: all 0.2s ease;
     cursor: pointer;
 }
-.stSelectbox div[data-baseweb="select"] > div:hover {
+div[data-baseweb="select"] > div:hover {
     border-color: #E02020 !important;
     box-shadow: 0 0 0 1px #E02020 !important;
 }
