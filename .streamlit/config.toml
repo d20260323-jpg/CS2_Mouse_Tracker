@@ -1,0 +1,28 @@
+# Streamlit 全局主题配置
+# 放置位置：仓库根目录下的  .streamlit/config.toml
+# （文件夹名前面有一个点，不要写成 streamlit/config.toml）
+
+[theme]
+# 基础明暗模式：dark = 深色底
+base = "dark"
+
+# 主强调色：按钮、滑块、选中态、链接等。用你的 ZOWIE 红。
+primaryColor = "#E02020"
+
+# 页面主背景（近黑深灰，对齐你 CSS 里的 #151515 一档）
+backgroundColor = "#121212"
+
+# 次级背景：侧边栏、输入框、容器卡片等。比主背景略浅，形成层次。
+secondaryBackgroundColor = "#1E1E1E"
+
+# 正文文字颜色（浅灰，和你现有 #E0E0E0 一致）
+textColor = "#E0E0E0"
+
+# 字体：sans serif / serif / monospace 三选一（Streamlit 内置）
+# 想换成特定字体需另外用 CSS，这里先用无衬线，最百搭。
+font = "sans serif"
+
+
+[server]
+# 收起右上角小菜单里的一些开发者选项，界面更干净（可选）
+# runOnSave = true
