@@ -264,7 +264,7 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 600px;
+        margin-bottom: 35px;
     }
 
     /* 标题样式 */
@@ -431,7 +431,7 @@ def main():
         hero_b64 = get_base64_image(HERO_MOUSE_PATH)
         if hero_b64:
             st.markdown(
-                f'<div style="text-align:right;"><img src="data:image/png;base64,{hero_b64}" class="hero-img"></div>',
+                f'<div style="text-align:right; margin-bottom:60px;"><img src="data:image/png;base64,{hero_b64}" class="hero-img"></div>',
                 unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
