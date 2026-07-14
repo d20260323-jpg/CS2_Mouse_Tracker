@@ -264,7 +264,7 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 35px;
+        margin-bottom: 600px;
     }
 
     /* 标题样式 */
