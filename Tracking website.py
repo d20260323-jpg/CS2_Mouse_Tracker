@@ -424,31 +424,18 @@ def main():
                 <p style="color:#888; font-size:18px; margin-top:15px; max-width:450px;">
                     实时同步全球顶尖选手的鼠标选择。基于三年核心样本数据分析。
                 </p>
-            </div>
-        """, unsafe_allow_html=True)
-
-    with h_col2:with h_col1:
-        st.markdown("""
-            <div style="padding-top:10px;">
-                <p style="color:#E02020; font-weight:bold; letter-spacing:3px; margin-bottom:5px;">PROFESSIONAL CHOICE</p>
-                <h1>CS2 PROS<br><span style="color:#E02020;">GEAR</span> TRACKER</h1>
-                <p style="color:#888; font-size:18px; margin-top:15px; max-width:450px;">
-                    实时同步全球顶尖选手的鼠标选择。基于三年核心样本数据分析。
-                </p>
                 <div style="margin-top:40px; display:flex; gap:30px;">
                     <div>
-                        <div style="color:#E02020; font-size:32px; font-weight:bold;">TRACK.</div>
+                        <div style="color:#E02020; font-size:32px; font-weight:bold;">289</div>
                         <div style="color:#666; font-size:13px; letter-spacing:1px;">PRO PLAYERS</div>
                     </div>
                     <div>
-                        <div style="color:#E02020; font-size:32px; font-weight:bold;">ANALYZE.</div>
+                        <div style="color:#E02020; font-size:32px; font-weight:bold;">3</div>
                         <div style="color:#666; font-size:13px; letter-spacing:1px;">YEARS TRACKED</div>
                     </div>
                     <div>
-                        <div style="color:#E02020; font-size:32px; font-weight:bold;">DOMINATE.</div>
+                        <div style="color:#E02020; font-size:32px; font-weight:bold;">24/7</div>
                         <div style="color:#666; font-size:13px; letter-spacing:1px;">LIVE SYNC</div>
-                    </div>
-                </div>
                     </div>
                 </div>
             </div>
