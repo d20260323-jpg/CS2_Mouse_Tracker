@@ -56,6 +56,22 @@ EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/
 ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
 HERO_MOUSE_PATH = "assets/hero_mouse.png"
 
+# ── 表二：鼠标规格主表（每行一款鼠标 + 完整参数）──
+SPEC_EXCEL_PATH = "mouseCatalog.xlsx"   # ← 改成你表二的真实文件名！
+
+@st.cache_data(ttl=300)
+def load_spec_table(path):
+    """读取表二，只做规格对比需要的最小清洗（缺列也不报错）"""
+    df = pd.read_excel(path)
+    if 'wireless' in df.columns:
+        df['wireless'] = df['wireless'].map(
+            {1.0: '无线', 0.0: '有线', 1: '无线', 0: '有线'}
+        ).fillna(df['wireless'])
+    for f in ['size', 'shape']:
+        if f in df.columns:
+            df[f] = df[f].astype(str).str.strip().str.lower().replace('nan', pd.NA)
+    return df
+
 # 品牌固定配色（同一品牌永远同一颜色，不随名次变化）
 BRAND_COLORS = {
     'Logitech': '#8B0000',  # 深红
@@ -281,11 +297,6 @@ st.markdown("""
         text-align: center;
         transition: all 0.3s ease;
     }
-    .metric-box:hover {
-        border-color: #E02020;
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(224, 32, 32, 0.2);
-    }
 
     /* 变动记录条目 */
     .change-log {
@@ -295,11 +306,7 @@ st.markdown("""
         margin-bottom: 10px;
         border-radius: 0 8px 8px 0;
     }
-    .change-log:hover {
-        border-left-color: #E02020;
-        background-color: #1a1515;
-    }
-
+    
     /* 鼠标图片发光效果 */
     .hero-img {
         filter: drop-shadow(0 0 20px rgba(224, 32, 32, 0.4));
@@ -314,12 +321,6 @@ st.markdown("""
     padding: 20px;
     min-height: 210px;
     transition: all 0.25s ease;
-}
-
-.briefing-card:hover {
-    border-color: #E02020;
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(224, 32, 32, 0.18);
 }
 
 .briefing-date {
@@ -339,6 +340,16 @@ st.markdown("""
 
 .briefing-preview {
     margin-top: 10px;
+}
+
+/* 下拉框（selectbox）hover 效果 */
+.stSelectbox div[data-baseweb="select"] > div {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.stSelectbox div[data-baseweb="select"] > div:hover {
+    border-color: #E02020 !important;
+    box-shadow: 0 0 0 1px #E02020 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -519,10 +530,10 @@ def main():
     # 共享时间滑块（横跨整宽，控制下面两个图）
     df_d = df_all.copy().sort_values('QueryTime')
     month_opts = pd.date_range(start=df_d['QueryTime'].min(), end=df_d['QueryTime'].max(), freq='ME')
-    sel_month = st.select_slider(
+    sel_month = st.selectbox(
         "📅 选择时间点",
         options=list(month_opts),
-        value=month_opts[-1],
+        index=len(month_opts) - 1,  # 默认选最后一个月
         format_func=lambda d: d.strftime('%Y-%m'),
         key='shared_month_slider'
     )
@@ -543,7 +554,7 @@ def main():
                           font_color="#E0E0E0", xaxis=dict(visible=False),
                           yaxis=dict(title="", autorange="reversed"), height=300,
                           margin=dict(l=0, r=0, t=0, b=0))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
     with chart_col2:
 
@@ -575,8 +586,9 @@ def main():
                        category_orders={'Brand': brand_order})
         fig_p.update_traces(sort=False)  # ← 关键：禁止plotly自己按大小重排扇形
         fig_p.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                            font_color="#E0E0E0", height=300, margin=dict(l=0, r=0, t=0, b=0))
-        st.plotly_chart(fig_p, use_container_width=True)
+                            font_color="#E0E0E0", height=300, margin=dict(l=0, r=0, t=0, b=0),
+                            legend=dict(font=dict(size=18, color="#FFFFFF")))
+        st.plotly_chart(fig_p, use_container_width=True, config={'displayModeBar': False})
 
     # --- D2. 品牌趋势折线图 ---
     st.markdown("<h2>📈 品牌使用趋势</h2>", unsafe_allow_html=True)
@@ -615,20 +627,37 @@ def main():
         y='Count',
         color='Brand',
         markers=True,
-        color_discrete_sequence=px.colors.sequential.Reds_r
+        color_discrete_map={
+            'Logitech': '#00A2FF',  # 蓝（罗技代表色）
+            'ZOWIE': '#E02020',  # 红（ZOWIE 主色）
+            'Razer': '#3DDC84',  # 绿（雷蛇代表色）
+            'VAXEE': '#FFB000',  # 黄
+            'Pulsar': '#9D4EDD',  # 紫
+        }
     )
     fig_line.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font_color="#FFFFFF",
         height=350,
-        margin=dict(l=0, r=0, t=0, b=0),
+        margin=dict(l=0, r=0, t=30, b=0),
         xaxis=dict(gridcolor='#222', tickfont=dict(color='#FFFFFF')),
-        yaxis=dict(gridcolor='#222', title=dict(text="使用人数", font=dict(color='#FFFFFF')),
+        yaxis=dict(gridcolor='#222', title=None,
                    tickfont=dict(color='#FFFFFF')),
         legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#FFFFFF'))
     )
-    st.plotly_chart(fig_line, use_container_width=True)
+
+    fig_line.add_annotation(
+        text="使用人数",
+        xref="paper", yref="paper",
+        x=0, y=1.05,  # 左上角，Y轴上方
+        showarrow=False,
+        font=dict(color="#FFFFFF", size=13),
+        xanchor="left"
+    )
+
+
+    st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
 
     # --- D3. 鼠标型号趋势对比（多组：组内合并 + 组间对比）---
     import re
@@ -719,7 +748,12 @@ def main():
         group['mice'] = list(synced_mice)
 
         display_index = st.session_state['trend_groups'].index(group) + 1
-        display_name = group['name'] if group['name'].strip() else f"鼠标{display_index}"
+        if group['name'].strip():
+            display_name = group['name']  # 用户手动输入的优先
+        elif group['mice']:
+            display_name = group['mice'][0]  # 没输入就用已选的第一个型号名
+        else:
+            display_name = f"鼠标{display_index}"  # 都没有才用占位名
 
         # ★修复2：expander用固定的key（绑定gid），不再依赖会变化的标题文字，
         # 这样用户手动折叠/展开的状态不会因为标题里数字变化或加了新组而被重置。
@@ -839,8 +873,9 @@ def main():
             paper_bgcolor='rgba(0,0,0,0)',
             font_color='white',
             height=420,
+            margin=dict(t=30),  # ← 顶部留空间给横排标题
             xaxis_title='Date',
-            yaxis_title='使用人数',
+            yaxis_title=None,  # ← 关掉竖排"使用人数"
             legend=dict(
                 bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#FFFFFF'),
@@ -849,7 +884,16 @@ def main():
             )
         )
 
-        st.plotly_chart(fig2, use_container_width=True)
+        fig2.add_annotation(  # ← 横排"使用人数"放Y轴上方
+            text="使用人数",
+            xref="paper", yref="paper",
+            x=0, y=1.05,
+            showarrow=False,
+            font=dict(color="#FFFFFF", size=13),
+            xanchor="left"
+        )
+
+        st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
     else:
         st.info("请先输入鼠标关键词并选择型号")
 
@@ -859,10 +903,10 @@ def main():
     # 时间滑块（这三个图共用）
     df_dist = df_all.copy().sort_values('QueryTime')
     month_opts_dist = pd.date_range(start=df_dist['QueryTime'].min(), end=df_dist['QueryTime'].max(), freq='ME')
-    sel_month_dist = st.select_slider(
+    sel_month_dist = st.selectbox(
         "📅 选择时间点（下方三个分布联动）",
         options=list(month_opts_dist),
-        value=month_opts_dist[-1],
+        index=len(month_opts_dist) - 1,  # 默认选最后一个月
         format_func=lambda d: d.strftime('%Y-%m'),
         key='dist_month_slider'
     )
@@ -888,7 +932,7 @@ def main():
                                 font_color="#E0E0E0", height=280, margin=dict(l=0, r=0, t=0, b=0),
                                 xaxis=dict(title=""), yaxis=dict(title="", gridcolor='#222'))
             fig_e.update_traces(textposition='outside')
-            st.plotly_chart(fig_e, use_container_width=True)
+            st.plotly_chart(fig_e, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("无 eDPI 数据")
 
@@ -909,7 +953,7 @@ def main():
                                 font_color="#E0E0E0", height=280, margin=dict(l=0, r=0, t=0, b=0),
                                 xaxis=dict(title=""), yaxis=dict(title="", gridcolor='#222'))
             fig_h.update_traces(textposition='outside')  # 回报率
-            st.plotly_chart(fig_h, use_container_width=True)
+            st.plotly_chart(fig_h, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("无回报率数据")
 
@@ -927,7 +971,7 @@ def main():
                            color_discrete_sequence=px.colors.sequential.Greens_r)
             fig_w.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                                 font_color="#E0E0E0", height=280, margin=dict(l=0, r=0, t=0, b=0))
-            st.plotly_chart(fig_w, use_container_width=True)
+            st.plotly_chart(fig_w, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("无重量数据")
 
@@ -941,10 +985,10 @@ def main():
     df_phys_all = df_phys_all.dropna(subset=['QueryTime'])
     month_opts_phys = pd.date_range(start=df_phys_all['QueryTime'].min(),
                                     end=df_phys_all['QueryTime'].max(), freq='ME')
-    sel_month_phys = st.select_slider(
+    sel_month_phys = st.selectbox(
         "📅 选择时间点（下方三个分布联动）",
         options=list(month_opts_phys),
-        value=month_opts_phys[-1],
+        index=len(month_opts_phys) - 1,  # 默认选最后一个月
         format_func=lambda d: d.strftime('%Y-%m'),
         key='phys_month_slider'
     )
@@ -970,7 +1014,7 @@ def main():
                                color_discrete_sequence=['#E02020', '#F39C12', '#3498DB'])
             fig_shape.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                                     font_color="#E0E0E0", height=280, margin=dict(l=0, r=0, t=0, b=0))
-            st.plotly_chart(fig_shape, use_container_width=True)
+            st.plotly_chart(fig_shape, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("无形状数据")
 
@@ -991,7 +1035,7 @@ def main():
                                    xaxis=dict(title="", categoryorder='array', categoryarray=size_order),
                                    yaxis=dict(title="", gridcolor='#222'))
             fig_size.update_traces(textposition='outside')
-            st.plotly_chart(fig_size, use_container_width=True)
+            st.plotly_chart(fig_size, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("无尺寸数据")
 
@@ -1006,12 +1050,12 @@ def main():
                             color_discrete_sequence=['#E02020', '#555555'])
             fig_wl.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                                  font_color="#E0E0E0", height=280, margin=dict(l=0, r=0, t=0, b=0))
-            st.plotly_chart(fig_wl, use_container_width=True)
+            st.plotly_chart(fig_wl, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("无连接方式数据")
 
     # --- D5. 选手三年装备时间线 ---
-    st.markdown("<h2>👤 选手装备演变（三年可追溯）</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>👤 选手装备演变</h2>", unsafe_allow_html=True)
 
     all_players = sorted(df_all['Player'].dropna().unique().tolist())
 
@@ -1038,8 +1082,12 @@ def main():
             st.markdown(f"**{sel_player} 的装备变更记录（共 {len(history)} 次）**")
             show = history[['QueryTime', 'Mouse', 'DPI', 'Sens', 'eDPI', 'HZ']].copy()
             show['QueryTime'] = show['QueryTime'].dt.strftime('%Y-%m-%d')
+            # 数值列格式化：DPI/eDPI/HZ 去小数，Sens 保留2位
+            for col in ['DPI', 'eDPI', 'HZ']:
+                show[col] = show[col].round(0).astype('Int64')
+            show['Sens'] = show['Sens'].map(lambda x: f"{x:g}" if pd.notnull(x) else "")
             show.columns = ['日期', '鼠标型号', 'DPI', 'Sens', 'eDPI', '回报率(Hz)']
-            st.dataframe(show, use_container_width=True, hide_index=True)
+            st.table(show.set_index('日期'))
         else:
             st.info(f"暂无 {sel_player} 的记录")
 
@@ -1208,7 +1256,7 @@ def main():
             ct = apply_order(ct, is_rows=True)
             ct = apply_order(ct, is_rows=False)
             st.markdown("**📋 精确人数表**")
-            st.dataframe(ct, use_container_width=True)
+            st.table(ct)
 
             # —— 下：热力图（不含合计行列，看扎堆/空白，同样按逻辑顺序排）——
             ct_heat = pd.crosstab(row_data, col_data)  # 无 margins
@@ -1236,24 +1284,41 @@ def main():
                 xaxis=dict(type='category'), yaxis=dict(type='category'),
                 margin=dict(l=0, r=0, t=10, b=0)
             )
-            st.plotly_chart(fig_ct, use_container_width=True)
+            st.plotly_chart(fig_ct, use_container_width=True, config={'displayModeBar': False})
             st.caption("⚠️ 空白格有两种含义：真空白(市场机会) 或 不合理组合(如超重+超小)，需结合设计经验判断")
 
         # --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
         st.markdown("<h2>🔧 鼠标规格对比</h2>", unsafe_allow_html=True)
         st.caption("搜索并逐个添加鼠标，横向对比物理规格参数，供硬件设计/竞品分析参考")
 
-        # 按型号取唯一规格（同型号规格一致，取第一条即可）
+        # 规格数据源 = 表二（只含有具体参数的鼠标）
         spec_cols = ['weight', 'size', 'shape', 'wireless', 'length', 'width',
                      'height', 'material', 'sensor', 'switch']
-        df_spec = df_all.drop_duplicates('Mouse').set_index('Mouse')
+
+        try:
+            df_spec_raw = load_spec_table(SPEC_EXCEL_PATH)
+        except Exception as e:
+            st.error(f"❌ 无法读取规格表(表二): {SPEC_EXCEL_PATH} — {e}")
+            df_spec_raw = pd.DataFrame(columns=['Mouse'] + spec_cols)
+
+        # 只保留表二里真实存在的规格列，避免列名对不上
+        spec_cols = [c for c in spec_cols if c in df_spec_raw.columns]
+        # 同型号可能有多行 → 按型号去重取第一条
+        df_spec = (df_spec_raw.dropna(subset=['Mouse'])
+                   .drop_duplicates('Mouse')
+                   .set_index('Mouse'))
 
         # 初始化对比清单
         if 'compare_mice' not in st.session_state:
             st.session_state['compare_mice'] = []
 
-        # 一个多选框搞定：输入关键词实时筛选，勾选即加入对比
-        all_mouse_options = sorted(df_all['Mouse'].dropna().unique().tolist())
+        # 候选型号 = 表二里的鼠标（保证每个选出来都有参数）
+        all_mouse_options = sorted(df_spec.index.dropna().unique().tolist())
+
+        # 清掉之前可能残留、但表二里没有的旧选择，避免 multiselect 报错
+        st.session_state['compare_mice'] = [
+            m for m in st.session_state['compare_mice'] if m in all_mouse_options
+        ]
         selected = st.multiselect(
             "🔍 搜索并选择鼠标型号（可输入关键词筛选，支持多选对比）",
             options=all_mouse_options,
@@ -1299,22 +1364,76 @@ def main():
         else:
             st.info("搜索并添加鼠标后，这里会显示参数对比表")
 
-    # --- E. 变动快讯 ---
-    st.markdown("<h2>🔄 实时变动动态</h2>", unsafe_allow_html=True)
-    changed_list = df_all[df_all['Changed'] == 'YES'].sort_values('QueryTime', ascending=False).head(6)
+    # --- E. 变动快讯（显示具体变更内容）---
+    st.markdown("<h2>🔄 最近十次变动动态</h2>", unsafe_allow_html=True)
+
+    # 清洗 + 转时间
+    df_all['Changed'] = df_all['Changed'].astype(str).str.strip().str.upper()
+    df_all['QueryTime'] = pd.to_datetime(df_all['QueryTime'], errors='coerce')
+
+    # 要对比的设置字段：列名 -> 显示名
+    SETTING_FIELDS = {
+        'DPI': 'DPI',
+        'polling_rate': '回报率',
+        'Sens': '灵敏度',
+        'eDPI': 'eDPI',
+    }
+
+    # 为每位选手按时间排序，取出"上一条"的各设置值，用于差异对比
+    df_all = df_all.sort_values(['Player', 'QueryTime'])
+    for col in SETTING_FIELDS:
+        if col in df_all.columns:
+            df_all[f'prev_{col}'] = df_all.groupby('Player')[col].shift(1)
+
+    def diff_settings(row):
+        """列出该行相对上一条记录，具体变了哪些设置"""
+        changes = []
+        for col, label in SETTING_FIELDS.items():
+            if col not in df_all.columns:
+                continue
+            old, new = row.get(f'prev_{col}'), row.get(col)
+            if pd.notnull(old) and pd.notnull(new) and str(old) != str(new):
+                changes.append(f'{label} {old}→{new}')
+        return changes
+
+    def describe_change(row):
+        ctype = str(row['Changed']).strip().upper()
+        mouse = row.get('Mouse', '未知')
+        if ctype == 'MOUSE':
+            return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span>'
+        if ctype == 'BOTH':
+            detail = '；'.join(diff_settings(row))
+            tail = f'（{detail}）' if detail else '（设备与设置同时变动）'
+            return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span> {tail}'
+        if ctype == 'SETTINGS':
+            detail = '；'.join(diff_settings(row))
+            tail = f'：{detail}' if detail else '（DPI / 回报率等）'
+            return f'选手 <b>{row["Player"]}</b> 更新了设置{tail}'
+        if ctype == 'NEW':
+            return f'新增选手 <b>{row["Player"]}</b>（<span style="color:#E02020;">{mouse}</span>）'
+        return f'选手 <b>{row["Player"]}</b> 数据有更新'
+
+    # 排序取最近 10 条（差异列已算好，这里再按时间倒序）
+    CHANGE_TYPES = ['MOUSE', 'BOTH', 'SETTINGS', 'NEW']
+    changed_list = (
+        df_all[df_all['Changed'].isin(CHANGE_TYPES)]
+        .sort_values('QueryTime', ascending=False)
+        .head(10)
+    )
 
     if not changed_list.empty:
         for _, row in changed_list.iterrows():
-            # 兼容处理时间显示
             time_str = row['QueryTime'].strftime('%Y-%m-%d %H:%M') if pd.notnull(row['QueryTime']) else "N/A"
             st.markdown(f"""
                 <div class="change-log">
                     <span style="color:#666; font-size:12px;">{time_str}</span><br>
-                    选手 <b>{row['Player']}</b> 切换至 <span style="color:#E02020;">{row['Mouse']}</span>
+                    {describe_change(row)}
                 </div>
             """, unsafe_allow_html=True)
     else:
         st.info("目前监测中... 暂无近期设备变更记录。")
+
+
 
 
 if __name__ == "__main__":
