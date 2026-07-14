@@ -342,12 +342,8 @@ st.markdown("""
     margin-top: 10px;
 }
 
-/* 下拉框 hover —— 全兼容暴力版 */
-div[data-baseweb="select"]:hover,
-div[data-baseweb="select"] > div:hover,
-div[data-baseweb="select"] div:hover,
-[class*="stSelectbox"] div:hover,
-[class*="stSelectbox"]:hover {
+/* 下拉框 hover */
+div[data-baseweb="select"] > div:hover {
     border-color: #E02020 !important;
     box-shadow: 0 0 0 1px #E02020 !important;
     cursor: pointer !important;
