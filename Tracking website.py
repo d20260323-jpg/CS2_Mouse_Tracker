@@ -264,12 +264,7 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: linear-gradient(135deg, #101010 0%, #1a1a1a 100%);
-        padding: 30px;
-        border-radius: 12px;
-        border: 1px solid #222;
         margin-bottom: 35px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
     /* 标题样式 */
@@ -418,6 +413,7 @@ def main():
         st.markdown('<h2 style="color:#E02020; margin:0; border:none;">ZOWIE</h2>', unsafe_allow_html=True)
 
 # --- B. Hero 视觉区 ---
+    st.markdown('<div class="hero-container">', unsafe_allow_html=True)
     h_col1, h_col2 = st.columns([1.5, 1])
 
     with h_col1:
@@ -435,8 +431,9 @@ def main():
         hero_b64 = get_base64_image(HERO_MOUSE_PATH)
         if hero_b64:
             st.markdown(
-                f'<div style="text-align:right; margin-bottom:30px;"><img src="data:image/png;base64,{hero_b64}" class="hero-img"></div>',
+                f'<div style="text-align:right;"><img src="data:image/png;base64,{hero_b64}" class="hero-img"></div>',
                 unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # 加载数据
     df_all, df_latest = load_data()
