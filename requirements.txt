@@ -1,4 +1,3 @@
-Pillowstreamlit
 pandas
 plotly
 openpyxl
