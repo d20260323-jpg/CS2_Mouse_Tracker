@@ -416,8 +416,7 @@ def main():
     else:
         st.markdown('<h2 style="color:#E02020; margin:0; border:none;">ZOWIE</h2>', unsafe_allow_html=True)
 
-    # --- B. Hero 视觉区 ---
-    st.markdown('<div class="hero-container">', unsafe_allow_html=True)
+# --- B. Hero 视觉区 ---
     h_col1, h_col2 = st.columns([1.5, 1])
 
     with h_col1:
@@ -437,7 +436,6 @@ def main():
             st.markdown(
                 f'<div style="text-align:right;"><img src="data:image/png;base64,{hero_b64}" class="hero-img"></div>',
                 unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # 加载数据
     df_all, df_latest = load_data()
