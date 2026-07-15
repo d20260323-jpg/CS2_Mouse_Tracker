@@ -1289,11 +1289,14 @@ def main():
                 colorbar=dict(title="选手数"),
                 hovertemplate=f"{row_sel}=%{{y}}<br>{col_sel}=%{{x}}<br>选手数=%{{z}}<extra></extra>"
             ))
+            heat_height = max(400, min(900, len(ct_heat.index) * 42 + 120))
+
             fig_ct.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font_color='#E0E0E0', height=400,
+                font_color='#E0E0E0', height=heat_height,
                 xaxis_title=col_sel, yaxis_title=row_sel,
-                xaxis=dict(type='category'), yaxis=dict(type='category'),
+                xaxis=dict(type='category', tickfont=dict(size=13)),
+                yaxis=dict(type='category', tickfont=dict(size=13)),
                 margin=dict(l=0, r=0, t=10, b=0)
             )
             st.plotly_chart(fig_ct, use_container_width=True, config={'displayModeBar': False})
