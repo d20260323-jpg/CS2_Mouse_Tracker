@@ -420,7 +420,7 @@ def main():
         st.markdown("""
             <div style="padding-top:10px;">
                 <p style="color:#E02020; font-weight:bold; letter-spacing:3px; margin-bottom:5px;">PROFESSIONAL CHOICE</p>
-                <h1>CS2 PROS<br><span style="color:#E02020;">GEAR</span> TRACKER</h1>
+                <h1>FPS PROS<br><span style="color:#E02020;">GEAR</span> TRACKER</h1>
                 <p style="color:#888; font-size:18px; margin-top:15px; max-width:450px;">
                     实时同步全球顶尖选手的鼠标选择。基于三年核心样本数据分析。
                 </p>
