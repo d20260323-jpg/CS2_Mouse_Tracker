@@ -20,6 +20,7 @@ st.set_page_config(
 
 import ast
 
+
 def clean_physical_fields(df):
     """读取后统一清洗：直接覆盖原字段，全文使用干净数据。"""
     df = df.copy()
@@ -51,13 +52,44 @@ def clean_physical_fields(df):
     return df
 
 
+def clean_numeric_fields(df):
+    """数值列清洗 + 字段错位检测
+    1) HZ/DPI/Sens/eDPI 强制转数值，非数值（显示器型号/战队名等）置空
+    2) 规则一：eDPI 应等于 DPI×Sens，偏差 >20% 判为错位
+    3) 规则二：数值超出物理合理范围判为错位
+    命中的行，四个设置列整体置空；Mouse/Team/QueryTime/Changed 保留
+    """
+    NUM_COLS = ["HZ", "DPI", "Sens", "eDPI"]
+    RANGES = {"DPI": (100, 32000), "Sens": (0.01, 20), "HZ": (100, 8000)}
+
+    for c in NUM_COLS:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+
+    bad = pd.Series(False, index=df.index)
+
+    # 规则一：eDPI 恒等式
+    if all(c in df.columns for c in ["DPI", "Sens", "eDPI"]):
+        d, s, e = df["DPI"], df["Sens"], df["eDPI"]
+        bad |= (d.notna() & s.notna() & e.notna() &
+                ((d * s - e).abs() > (e.abs() * 0.2).clip(lower=1)))
+
+    # 规则二：物理范围
+    for c, (lo, hi) in RANGES.items():
+        if c in df.columns:
+            bad |= df[c].notna() & ((df[c] < lo) | (df[c] > hi))
+
+    df.loc[bad, [c for c in NUM_COLS if c in df.columns]] = float("nan")
+    return df
+
 # 图片路径
-EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx"  # EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx"
+EXCEL_PATH = "FPS_mouse_tracking.xlsx"  # EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx"
 ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
 HERO_MOUSE_PATH = "assets/hero_mouse.png"
 
 # ── 表二：鼠标规格主表（每行一款鼠标 + 完整参数）──
-SPEC_EXCEL_PATH = "mouseCatalog.xlsx"   # ← 改成你表二的真实文件名！
+SPEC_EXCEL_PATH = "mouseCatalog.xlsx"  # ← 改成你表二的真实文件名！
+
 
 @st.cache_data(ttl=300)
 def load_spec_table(path):
@@ -71,6 +103,7 @@ def load_spec_table(path):
         if f in df.columns:
             df[f] = df[f].astype(str).str.strip().str.lower().replace('nan', pd.NA)
     return df
+
 
 # 品牌固定配色（同一品牌永远同一颜色，不随名次变化）
 BRAND_COLORS = {
@@ -301,7 +334,7 @@ st.markdown("""
         margin-bottom: 10px;
         border-radius: 0 8px 8px 0;
     }
-    
+
     /* 鼠标图片发光效果 */
     .hero-img {
     filter: drop-shadow(0 0 20px rgba(224, 32, 32, 0.4));
@@ -360,11 +393,11 @@ def get_base64_image(path):
 # ==========================================
 # 2. 数据处理与缓存（仅统计最后 23 行）
 # ==================================================
-
 @st.cache_data(ttl=300)
 def load_data():
     try:
         df_all = pd.read_excel(EXCEL_PATH)
+        df_all = clean_numeric_fields(df_all)
         df_all = clean_physical_fields(df_all)
 
     except Exception as e:
@@ -412,7 +445,7 @@ def main():
     else:
         st.markdown('<h2 style="color:#E02020; margin:0; border:none;">ZOWIE</h2>', unsafe_allow_html=True)
 
-# --- B. Hero 视觉区 ---
+    # --- B. Hero 视觉区 ---
     st.markdown('<div class="hero-container">', unsafe_allow_html=True)
     h_col1, h_col2 = st.columns([1.5, 1])
 
@@ -648,7 +681,6 @@ def main():
         font=dict(color="#FFFFFF", size=13),
         xanchor="left"
     )
-
 
     st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
 
@@ -1126,14 +1158,15 @@ def main():
         df_ct['尺寸'] = df_ct['size'].map({'large': '大', 'medium': '中', 'small': '小'})
         df_ct['连接方式'] = df_ct['wireless']  # 已清洗成"无线/有线"
         df_ct['长度'] = pd.cut(pd.to_numeric(df_ct['length'], errors='coerce'),
-                                 bins=[0, 118, 120, 122, 124, 126, 128, 130],
-                                 labels=['≤118mm', '118-120mm', '120-122mm', '122-124gmm', '124-126mm', '126-128mm','128-130mm'])
+                               bins=[0, 118, 120, 122, 124, 126, 128, 130],
+                               labels=['≤118mm', '118-120mm', '120-122mm', '122-124gmm', '124-126mm', '126-128mm',
+                                       '128-130mm'])
         df_ct['宽度'] = pd.cut(pd.to_numeric(df_ct['width'], errors='coerce'),
-                                   bins=[0, 62, 64, 66, 68, 70],
-                                   labels=['≤62mm', '62-64mm', '64-66mm', '66-68mm', '68-70mm'])
+                               bins=[0, 62, 64, 66, 68, 70],
+                               labels=['≤62mm', '62-64mm', '64-66mm', '66-68mm', '68-70mm'])
         df_ct['高度'] = pd.cut(pd.to_numeric(df_ct['height'], errors='coerce'),
-                                   bins=[0, 38, 40, 42, 44],
-                                   labels=['≤38mm', '38-40mm', '40-42mm', '42-44mm'])
+                               bins=[0, 38, 40, 42, 44],
+                               labels=['≤38mm', '38-40mm', '40-42mm', '42-44mm'])
         df_ct['隆起位置'] = df_ct['hump_placement'].map({
             'back - aggressive': '后-明显',
             'back - minimal': '后-轻微',
@@ -1185,7 +1218,6 @@ def main():
         df_ct['微动'] = topn_category(df_ct['switch'], n=12)
         df_ct['滚轮'] = topn_category(df_ct['scroll'], n=12)
 
-
         # 可选交叉维度（显示名 → 字段名）
         field_map = {
             '品牌': 'Brand',
@@ -1232,10 +1264,10 @@ def main():
             order_map = {
                 '回报率': ['≤500Hz', '1000Hz', '2000Hz', '4000Hz', '8000Hz'],
                 '重量档': ['≤55g', '55-60g', '60-65g', '65-70g', '70-80g', '>80g'],
-                'eDPI档': edpi_labels,   # 直接引用，保证和pd.cut用的完全一致
+                'eDPI档': edpi_labels,  # 直接引用，保证和pd.cut用的完全一致
                 '尺寸': ['小', '中', '大'],
                 '连接方式': ['有线', '无线'],
-                '长度': ['≤118mm', '118-120mm', '120-122mm', '122-124gmm', '124-126mm', '126-128mm','128-130mm'],
+                '长度': ['≤118mm', '118-120mm', '120-122mm', '122-124gmm', '124-126mm', '126-128mm', '128-130mm'],
                 '宽度': ['≤62mm', '62-64mm', '64-66mm', '66-68mm', '68-70mm'],
                 '高度': ['≤38mm', '38-40mm', '40-42mm', '42-44mm'],
                 '隆起位置': ['居中', '后-轻微', '后-适中', '后-明显'],
@@ -1447,8 +1479,6 @@ def main():
             """, unsafe_allow_html=True)
     else:
         st.info("目前监测中... 暂无近期设备变更记录。")
-
-
 
 
 if __name__ == "__main__":
