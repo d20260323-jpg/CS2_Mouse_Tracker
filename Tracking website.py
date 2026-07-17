@@ -620,9 +620,11 @@ def main():
     st.markdown("<h2>📈 品牌使用趋势</h2>", unsafe_allow_html=True)
 
     # 处理数据：按时间 + 品牌统计每个时间点的使用数量
-    # 处理数据：按月重建"存量"——每月底每个品牌有多少人在用（forward-fill）
+    # 处理数据：按月重建"存量"——每月底每个品牌有多少人在用（forward-fill
     df_trend = df_all.copy()
     df_trend = df_trend.sort_values('QueryTime')
+    df_trend = df_trend[df_trend['QueryTime'] >= '2023-09-27']
+
 
     # 生成每个月的月末时间点
     start = df_trend['QueryTime'].min()
@@ -726,8 +728,11 @@ def main():
     st.markdown("<h2>🔍 鼠标型号趋势对比</h2>", unsafe_allow_html=True)
 
     df_m = df_all.copy()
+
     df_m['Mouse_Normalized'] = df_m['Mouse'].apply(normalize_mouse_name)
     df_m = df_m.sort_values('QueryTime')
+
+    df_m = df_m[df_m['QueryTime'] >= '2023-09-27']
 
     all_mice = sorted(df_m['Mouse_Normalized'].dropna().unique().tolist())
     end_all = df_m['QueryTime'].max()
@@ -963,11 +968,26 @@ def main():
 
     # —— eDPI 分布 ——
     with dist_c1:
-        st.markdown("<h2 style='font-size:20px;'>🎯 eDPI 分布</h2>", unsafe_allow_html=True)
-        edpi = pd.to_numeric(snap_dist['eDPI'], errors='coerce').dropna()
+        game_sel = st.radio(
+            "游戏", ["CS2", "Valorant"],
+            horizontal=True, key="edpi_game_radio",
+            label_visibility="collapsed",
+        )
+        st.markdown(f"<h2 style='font-size:20px;'>🎯 eDPI 分布（{game_sel}）</h2>",
+                    unsafe_allow_html=True)
+
+        BUCKETS = {
+            "CS2": ([0, 600, 800, 1000, 1200, 99999],
+                    ['<600', '600-800', '800-1000', '1000-1200', '≥1200']),
+            "Valorant": ([0, 160, 220, 280, 340, 99999],
+                         ['<160', '160-220', '220-280', '280-340', '≥340']),
+        }
+        bins, labels = BUCKETS[game_sel]
+
+        snap_game = snap_dist[snap_dist['Game'] == game_sel]
+        edpi = pd.to_numeric(snap_game['eDPI'], errors='coerce').dropna()
+
         if len(edpi) > 0:
-            bins = [0, 600, 800, 1000, 1200, 99999]
-            labels = ['<600', '600-800', '800-1000', '1000-1200', '≥1200']
             edpi_binned = pd.cut(edpi, bins=bins, labels=labels, right=False)
             edpi_data = edpi_binned.value_counts().reindex(labels).reset_index()
             edpi_data.columns = ['区间', 'count']
@@ -978,7 +998,7 @@ def main():
             fig_e.update_traces(textposition='outside')
             st.plotly_chart(fig_e, use_container_width=True, config={'displayModeBar': False})
         else:
-            st.info("无 eDPI 数据")
+            st.info(f"无 {game_sel} 的 eDPI 数据")
 
     # —— 回报率分布 ——
     with dist_c2:
