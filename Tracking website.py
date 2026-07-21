@@ -1301,19 +1301,30 @@ def main():
                 '传感器类型': ['光学', '激光'],
             }
 
+            PLACEHOLDER = {'未知', '其他'}
+
             def apply_order(df_table, is_rows):
-                """按维度逻辑顺序重排行或列，未知放最后"""
+                """按维度逻辑顺序重排；占位值(未知)永远排到末尾"""
                 sel = row_sel if is_rows else col_sel
+                axis_vals = list(df_table.index if is_rows else df_table.columns)
+                has_total = '合计' in axis_vals
+            
+                placeholders = [x for x in axis_vals if x in PLACEHOLDER]
+            
                 if sel in order_map:
-                    desired = [x for x in order_map[sel] if x in (df_table.index if is_rows else df_table.columns)]
-                    # 把"未知"和其他没列到的值追加到末尾
-                    rest = [x for x in (df_table.index if is_rows else df_table.columns)
-                            if x not in desired and x != '合计']
-                    final = desired + rest
-                    if '合计' in (df_table.index if is_rows else df_table.columns):
-                        final = final + ['合计']
-                    return df_table.reindex(index=final) if is_rows else df_table.reindex(columns=final)
-                return df_table
+                    base = [x for x in order_map[sel] if x in axis_vals and x not in placeholders]
+                else:
+                    base = [x for x in axis_vals if x not in placeholders and x != '合计']
+            
+                rest = [x for x in axis_vals
+                        if x not in base and x not in placeholders and x != '合计']
+            
+                final = base + rest + placeholders   # ← 行和列都一样，占位值统一放末尾
+            
+                if has_total:
+                    final = [x for x in final if x != '合计'] + ['合计']
+            
+                return df_table.reindex(index=final) if is_rows else df_table.reindex(columns=final)
 
             # —— 热力图（不含合计行列，看扎堆/空白，同样按逻辑顺序排）——
             ct_heat = pd.crosstab(row_data, col_data)  # 无 margins
