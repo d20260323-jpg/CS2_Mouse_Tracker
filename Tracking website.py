@@ -1315,14 +1315,7 @@ def main():
                     return df_table.reindex(index=final) if is_rows else df_table.reindex(columns=final)
                 return df_table
 
-            # —— 上：精确数字表（带合计，按维度逻辑顺序排）——
-            ct = pd.crosstab(row_data, col_data, margins=True, margins_name='合计')
-            ct = apply_order(ct, is_rows=True)
-            ct = apply_order(ct, is_rows=False)
-            st.markdown("**📋 精确人数表**")
-            st.table(ct)
-
-            # —— 下：热力图（不含合计行列，看扎堆/空白，同样按逻辑顺序排）——
+            # —— 热力图（不含合计行列，看扎堆/空白，同样按逻辑顺序排）——
             ct_heat = pd.crosstab(row_data, col_data)  # 无 margins
             ct_heat = apply_order(ct_heat, is_rows=True)
             ct_heat = apply_order(ct_heat, is_rows=False)
