@@ -107,7 +107,7 @@ def load_spec_table(path):
 
 # 品牌固定配色（同一品牌永远同一颜色，不随名次变化）
 BRAND_COLORS = {
-    'Logitech': '#8B0000',  # 深红
+    'Logitech': '#00A2FF',  # 蓝色
     'ZOWIE': '#E02020',  # 正红
     'Razer': '#00B14F',  # 雷蛇绿（雷蛇品牌色）
     'Pulsar': '#FF6B35',  # 橙
@@ -655,13 +655,7 @@ def main():
         y='Count',
         color='Brand',
         markers=True,
-        color_discrete_map={
-            'Logitech': '#00A2FF',  # 蓝（罗技代表色）
-            'ZOWIE': '#E02020',  # 红（ZOWIE 主色）
-            'Razer': '#3DDC84',  # 绿（雷蛇代表色）
-            'VAXEE': '#FFB000',  # 黄
-            'Pulsar': '#9D4EDD',  # 紫
-        }
+        color_discrete_map=BRAND_COLORS
     )
     fig_line.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
