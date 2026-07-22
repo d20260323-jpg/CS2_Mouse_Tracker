@@ -744,7 +744,18 @@ def main():
 
     st.markdown("<h2>🔍 鼠标型号趋势对比</h2>", unsafe_allow_html=True)
 
+    # 游戏切换（放在图上方，过滤下面所有型号列表与趋势）
+    game_sel_m = st.radio(
+        "游戏", ["全部", "CS2", "Valorant"],
+        horizontal=True, key="d3_game_radio",
+        label_visibility="collapsed",
+    )
+
     df_m = df_all.copy()
+
+    # 按游戏过滤（选"全部"则不过滤）——放在最前，让 all_mice / 默认组 / 月度循环口径统一
+    if game_sel_m != "全部":
+        df_m = df_m[df_m['Game'] == game_sel_m]
 
     df_m['Mouse_Normalized'] = df_m['Mouse'].apply(normalize_mouse_name)
     df_m = df_m.sort_values('QueryTime')
