@@ -1211,208 +1211,259 @@ def main():
         else:
             st.info(f"暂无 {sel_player} 的记录")
 
-        # --- D6+D8 合并：自由交叉分析（数字表 + 热力图 双视图）---
-        st.markdown("<h2>🔀 自由交叉分析</h2>", unsafe_allow_html=True)
-        st.caption("自选两个维度：上方看精确人数（表格），下方看扎堆/空白（热力图）。如 品牌×回报率：看哪个品牌爱用高刷")
+    # --- D6+D8 合并：自由交叉分析（数字表 + 热力图 双视图）---
+    st.markdown("<h2>🔀 自由交叉分析</h2>", unsafe_allow_html=True)
+    st.caption("自选两个维度：上方看精确人数（表格），下方看扎堆/空白（热力图）。如 品牌×回报率：看哪个品牌爱用高刷")
 
-        # 当前快照（每人最新一条 + 活跃过滤），与其他图口径一致
-        df_ct = df_all.copy().sort_values('QueryTime').drop_duplicates('Player', keep='last')
-        df_ct = df_ct[df_ct['QueryTime'] >= df_ct['QueryTime'].max() - pd.Timedelta(days=350)].copy()
+    # 游戏切换（放在最前，过滤后再做所有分档）
+    game_sel_ct = st.radio(
+        "游戏", ["全部", "CS2", "Valorant"],
+        horizontal=True, key="ct_game_radio",
+        label_visibility="collapsed",
+    )
 
-        # 数值字段分档，做成可交叉的分类字段
-        edpi_labels = ['<600', '600-800', '800-1000', '1000-1200', '≥1200']
-        df_ct['eDPI档'] = pd.cut(pd.to_numeric(df_ct['eDPI'], errors='coerce'),
-                                 bins=[0, 600, 800, 1000, 1200, 99999],
-                                 labels=edpi_labels)
-        df_ct['重量档'] = pd.cut(pd.to_numeric(df_ct['weight'], errors='coerce'),
-                                 bins=[0, 55, 60, 65, 70, 80, 999],
-                                 labels=['≤55g', '55-60g', '60-65g', '65-70g', '70-80g', '>80g'])
-        df_ct['回报率'] = pd.cut(pd.to_numeric(df_ct['HZ'], errors='coerce'),
-                                 bins=[0, 500, 1000, 2000, 4000, 99999],
-                                 labels=['≤500Hz', '1000Hz', '2000Hz', '4000Hz', '8000Hz'])
-        df_ct['形状'] = df_ct['shape'].map({'symmetrical': '对称', 'ergonomic': '人体工学', 'hybrid': '混合'})
-        df_ct['尺寸'] = df_ct['size'].map({'large': '大', 'medium': '中', 'small': '小'})
-        df_ct['连接方式'] = df_ct['wireless']  # 已清洗成"无线/有线"
-        df_ct['长度'] = pd.cut(pd.to_numeric(df_ct['length'], errors='coerce'),
-                               bins=[0, 118, 120, 122, 124, 126, 128, 130],
-                               labels=['≤118mm', '118-120mm', '120-122mm', '122-124gmm', '124-126mm', '126-128mm',
-                                       '128-130mm'])
-        df_ct['宽度'] = pd.cut(pd.to_numeric(df_ct['width'], errors='coerce'),
-                               bins=[0, 62, 64, 66, 68, 70],
-                               labels=['≤62mm', '62-64mm', '64-66mm', '66-68mm', '68-70mm'])
-        df_ct['高度'] = pd.cut(pd.to_numeric(df_ct['height'], errors='coerce'),
-                               bins=[0, 38, 40, 42, 44],
-                               labels=['≤38mm', '38-40mm', '40-42mm', '42-44mm'])
-        df_ct['隆起位置'] = df_ct['hump_placement'].map({
-            'back - aggressive': '后-明显',
-            'back - minimal': '后-轻微',
-            'back - moderate': '后-适中',
-            'center': '居中',
-        })
-        df_ct['前端外扩'] = df_ct['front_flare'].map({
-            'flat': '平直',
-            'outward - slight': '外扩-轻微',
-            'outward - moderate': '外扩-中等',
-            'outward - aggressive': '外扩-强烈',
-        })
-        _sc = df_ct['side_curvature'].astype(str).str.replace('–', '-', regex=False).str.strip()
-        df_ct['侧面弧度'] = _sc.map({
-            'flat': '平直',
-            'inward': '内凹',
-            'inward - aggressive': '内凹-强烈',
-        })
-        # ===== 新增维度：选手DPI / 回报率上限 / 传感器规格 / 传感器型号 / 微动 / 滚轮 =====
-        # 选手实际DPI（分档）
-        df_ct['DPI档'] = pd.cut(pd.to_numeric(df_ct['dpi'], errors='coerce'),
-                                bins=[0, 400, 800, 1600, 3200, 99999],
-                                labels=['≤400', '401-800', '801-1600', '1601-3200', '>3200'])
-        # 鼠标支持的回报率上限（取值少，直接分类）
-        df_ct['回报率上限'] = pd.to_numeric(df_ct['polling_rate'], errors='coerce').astype('Int64').astype(str) \
-            .replace('<NA>', pd.NA).map(lambda x: f'{x}Hz' if pd.notna(x) else x)
+    # 当前快照（每人最新一条 + 活跃过滤），与其他图口径一致
+    df_ct = df_all.copy().sort_values('QueryTime').drop_duplicates('Player', keep='last')
+    df_ct = df_ct[df_ct['QueryTime'] >= df_ct['QueryTime'].max() - pd.Timedelta(days=350)].copy()
 
-        # 传感器规格三件套（分档）
-        df_ct['传感器最大DPI'] = pd.cut(pd.to_numeric(df_ct['sensor_dpi'], errors='coerce'),
-                                        bins=[0, 20000, 26000, 32000, 40000, 99999],
-                                        labels=['≤20k', '20-26k', '26-32k', '32-40k', '>40k'])
-        df_ct['最大追踪速度'] = pd.cut(pd.to_numeric(df_ct['sensor_tracking_speed'], errors='coerce'),
-                                       bins=[0, 400, 650, 750, 888, 9999],
-                                       labels=['≤400', '400-650', '650-750', '750-888', '>888'])
-        df_ct['最大加速度'] = pd.cut(pd.to_numeric(df_ct['acceleration'], errors='coerce'),
-                                     bins=[0, 40, 50, 70, 88, 999],
-                                     labels=['≤40G', '40-50G', '50-70G', '70-88G', '>88G'])
-        # 传感器类型（分类）
-        df_ct['传感器类型'] = df_ct['sensor_type'].astype(str).str.strip().str.lower().map(
-            {'optical': '光学', 'laser': '激光'})
+    # 按游戏过滤（选"全部"则不过滤）——必须在所有 pd.cut / topN 之前
+    if game_sel_ct != "全部":
+        df_ct = df_ct[df_ct['Game'] == game_sel_ct].copy()
 
-        # 取值很碎的字段：只保留最常见的 TOP N，其余归"其他"，避免交叉表炸成几十列
-        def topn_category(series, n=12):
-            s = series.astype(str).str.strip().replace('nan', pd.NA)
-            top = s.value_counts().head(n).index
-            return s.where(s.isin(top), other='其他').where(s.notna(), other=pd.NA)
+    # 数值字段分档，做成可交叉的分类字段
+    edpi_labels = ['<600', '600-800', '800-1000', '1000-1200', '≥1200']
+    df_ct['eDPI档'] = pd.cut(pd.to_numeric(df_ct['eDPI'], errors='coerce'),
+                             bins=[0, 600, 800, 1000, 1200, 99999],
+                             labels=edpi_labels)
+    df_ct['重量档'] = pd.cut(pd.to_numeric(df_ct['weight'], errors='coerce'),
+                             bins=[0, 55, 60, 65, 70, 80, 999],
+                             labels=['≤55g', '55-60g', '60-65g', '65-70g', '70-80g', '>80g'])
+    df_ct['回报率'] = pd.cut(pd.to_numeric(df_ct['HZ'], errors='coerce'),
+                             bins=[0, 500, 1000, 2000, 4000, 99999],
+                             labels=['≤500Hz', '1000Hz', '2000Hz', '4000Hz', '8000Hz'])
+    df_ct['形状'] = df_ct['shape'].map({'symmetrical': '对称', 'ergonomic': '人体工学', 'hybrid': '混合'})
+    df_ct['尺寸'] = df_ct['size'].map({'large': '大', 'medium': '中', 'small': '小'})
+    df_ct['连接方式'] = df_ct['wireless']  # 已清洗成"无线/有线"
+    df_ct['长度'] = pd.cut(pd.to_numeric(df_ct['length'], errors='coerce'),
+                           bins=[0, 118, 120, 122, 124, 126, 128, 130],
+                           labels=['≤118mm', '118-120mm', '120-122mm', '122-124gmm', '124-126mm', '126-128mm',
+                                   '128-130mm'])
+    df_ct['宽度'] = pd.cut(pd.to_numeric(df_ct['width'], errors='coerce'),
+                           bins=[0, 62, 64, 66, 68, 70],
+                           labels=['≤62mm', '62-64mm', '64-66mm', '66-68mm', '68-70mm'])
+    df_ct['高度'] = pd.cut(pd.to_numeric(df_ct['height'], errors='coerce'),
+                           bins=[0, 38, 40, 42, 44],
+                           labels=['≤38mm', '38-40mm', '40-42mm', '42-44mm'])
+    df_ct['隆起位置'] = df_ct['hump_placement'].map({
+        'back - aggressive': '后-明显',
+        'back - minimal': '后-轻微',
+        'back - moderate': '后-适中',
+        'center': '居中',
+    })
+    df_ct['前端外扩'] = df_ct['front_flare'].map({
+        'flat': '平直',
+        'outward - slight': '外扩-轻微',
+        'outward - moderate': '外扩-中等',
+        'outward - aggressive': '外扩-强烈',
+    })
+    _sc = df_ct['side_curvature'].astype(str).str.replace('–', '-', regex=False).str.strip()
+    df_ct['侧面弧度'] = _sc.map({
+        'flat': '平直',
+        'inward': '内凹',
+        'inward - aggressive': '内凹-强烈',
+    })
+    # ===== 新增维度：选手DPI / 回报率上限 / 传感器规格 / 传感器型号 / 微动 / 滚轮 =====
+    # 选手实际DPI（分档）
+    df_ct['DPI档'] = pd.cut(pd.to_numeric(df_ct['dpi'], errors='coerce'),
+                            bins=[0, 400, 800, 1600, 3200, 99999],
+                            labels=['≤400', '401-800', '801-1600', '1601-3200', '>3200'])
+    # 鼠标支持的回报率上限（取值少，直接分类）
+    df_ct['回报率上限'] = pd.to_numeric(df_ct['polling_rate'], errors='coerce').astype('Int64').astype(str) \
+        .replace('<NA>', pd.NA).map(lambda x: f'{x}Hz' if pd.notna(x) else x)
 
-        df_ct['传感器型号'] = topn_category(df_ct['sensor'], n=12)
-        df_ct['微动'] = topn_category(df_ct['switch'], n=12)
-        df_ct['滚轮'] = topn_category(df_ct['scroll'], n=12)
+    # 传感器规格三件套（分档）
+    df_ct['传感器最大DPI'] = pd.cut(pd.to_numeric(df_ct['sensor_dpi'], errors='coerce'),
+                                    bins=[0, 20000, 26000, 32000, 40000, 99999],
+                                    labels=['≤20k', '20-26k', '26-32k', '32-40k', '>40k'])
+    df_ct['最大追踪速度'] = pd.cut(pd.to_numeric(df_ct['sensor_tracking_speed'], errors='coerce'),
+                                   bins=[0, 400, 650, 750, 888, 9999],
+                                   labels=['≤400', '400-650', '650-750', '750-888', '>888'])
+    df_ct['最大加速度'] = pd.cut(pd.to_numeric(df_ct['acceleration'], errors='coerce'),
+                                 bins=[0, 40, 50, 70, 88, 999],
+                                 labels=['≤40G', '40-50G', '50-70G', '70-88G', '>88G'])
+    # 传感器类型（分类）
+    df_ct['传感器类型'] = df_ct['sensor_type'].astype(str).str.strip().str.lower().map(
+        {'optical': '光学', 'laser': '激光'})
 
-        # 可选交叉维度（显示名 → 字段名）
-        field_map = {
-            '品牌': 'Brand',
-            '战队': 'Team',
-            '回报率': '回报率',
-            'eDPI档': 'eDPI档',
-            '重量档': '重量档',
-            '形状': '形状',
-            '尺寸': '尺寸',
-            '连接方式': '连接方式',
-            '长度': '长度',
-            '宽度': '宽度',
-            '高度': '高度',
-            '隆起位置': '隆起位置',
-            '前端外扩': '前端外扩',
-            '侧面弧度': '侧面弧度',
-            'DPI档': 'DPI档',
-            '回报率上限': '回报率上限',
-            '传感器最大DPI': '传感器最大DPI',
-            '最大追踪速度': '最大追踪速度',
-            '最大加速度': '最大加速度',
-            '传感器类型': '传感器类型',
-            '传感器型号': '传感器型号',
-            '微动': '微动',
-            '滚轮': '滚轮',
-        }
-        field_names = list(field_map.keys())
+    # 取值很碎的字段：只保留最常见的 TOP N，其余归"其他"，避免交叉表炸成几十列
+    def topn_category(series, n=12):
+        s = series.astype(str).str.strip().replace('nan', pd.NA)
+        top = s.value_counts().head(n).index
+        return s.where(s.isin(top), other='其他').where(s.notna(), other=pd.NA)
 
-        c1, c2 = st.columns(2)
-        with c1:
-            row_sel = st.selectbox("行维度", field_names, index=0, key='ct_row')
-        with c2:
-            col_sel = st.selectbox("列维度", field_names, index=2, key='ct_col')
+    df_ct['传感器型号'] = topn_category(df_ct['sensor'], n=12)
+    df_ct['微动'] = topn_category(df_ct['switch'], n=12)
+    df_ct['滚轮'] = topn_category(df_ct['scroll'], n=12)
 
-        if row_sel == col_sel:
-            st.warning("行和列请选不同的维度")
+    # 可选交叉维度（显示名 → 字段名）
+    field_map = {
+        '品牌': 'Brand',
+        '战队': 'Team',
+        '回报率': '回报率',
+        'eDPI档': 'eDPI档',
+        '重量档': '重量档',
+        '形状': '形状',
+        '尺寸': '尺寸',
+        '连接方式': '连接方式',
+        '长度': '长度',
+        '宽度': '宽度',
+        '高度': '高度',
+        '隆起位置': '隆起位置',
+        '前端外扩': '前端外扩',
+        '侧面弧度': '侧面弧度',
+        'DPI档': 'DPI档',
+        '回报率上限': '回报率上限',
+        '传感器最大DPI': '传感器最大DPI',
+        '最大追踪速度': '最大追踪速度',
+        '最大加速度': '最大加速度',
+        '传感器类型': '传感器类型',
+        '传感器型号': '传感器型号',
+        '微动': '微动',
+        '滚轮': '滚轮',
+    }
+    field_names = list(field_map.keys())
+
+    # 各维度的"正确顺序"（有内在大小的维度按逻辑排，不按字母）——上移，两个分支共用
+    order_map = {
+        '回报率': ['≤500Hz', '1000Hz', '2000Hz', '4000Hz', '8000Hz'],
+        '重量档': ['≤55g', '55-60g', '60-65g', '65-70g', '70-80g', '>80g'],
+        'eDPI档': edpi_labels,  # 直接引用，保证和pd.cut用的完全一致
+        '尺寸': ['小', '中', '大'],
+        '连接方式': ['有线', '无线'],
+        '长度': ['≤118mm', '118-120mm', '120-122mm', '122-124gmm', '124-126mm', '126-128mm', '128-130mm'],
+        '宽度': ['≤62mm', '62-64mm', '64-66mm', '66-68mm', '68-70mm'],
+        '高度': ['≤38mm', '38-40mm', '40-42mm', '42-44mm'],
+        '隆起位置': ['居中', '后-轻微', '后-适中', '后-明显'],
+        '前端外扩': ['平直', '外扩-轻微', '外扩-中等', '外扩-强烈'],
+        '侧面弧度': ['平直', '内凹', '内凹-强烈'],
+        'DPI档': ['≤400', '401-800', '801-1600', '1601-3200', '>3200'],
+        '回报率上限': ['1000Hz', '4000Hz', '8000Hz'],
+        '传感器最大DPI': ['≤20k', '20-26k', '26-32k', '32-40k', '>40k'],
+        '最大追踪速度': ['≤400', '400-650', '650-750', '750-888', '>888'],
+        '最大加速度': ['≤40G', '40-50G', '50-70G', '70-88G', '>88G'],
+        '传感器类型': ['光学', '激光'],
+    }
+    PLACEHOLDER = {'未知', '其他'}
+
+    c1, c2 = st.columns(2)
+    with c1:
+        row_sel = st.selectbox("行维度", field_names, index=0, key='ct_row')
+    with c2:
+        col_options = ['（无）'] + field_names  # 列维度多一个"不交叉"选项
+        col_sel = st.selectbox("列维度", col_options, index=3,
+                               key='ct_col')  # 默认 800-1000 那档对应的列；想默认单维度改成 index=0
+
+    # ===== 分支1：列选"（无）" → 只看行维度单维频数 =====
+    if col_sel == '（无）':
+        row_col = field_map[row_sel]
+        s = df_ct[row_col].astype(str).replace('nan', '未知').fillna('未知')
+        freq_df = s.value_counts().to_frame('选手数')
+
+        # 复用 order_map 排序：占位值(未知/其他)沉底
+        axis_vals = list(freq_df.index)
+        placeholders = [x for x in axis_vals if x in PLACEHOLDER]
+        if row_sel in order_map:
+            base = [x for x in order_map[row_sel] if x in axis_vals and x not in placeholders]
         else:
-            row_col = field_map[row_sel]
-            col_col = field_map[col_sel]
-            row_data = df_ct[row_col].astype(str).replace('nan', '未知').fillna('未知')
-            col_data = df_ct[col_col].astype(str).replace('nan', '未知').fillna('未知')
+            base = [x for x in axis_vals if x not in placeholders]
+        rest = [x for x in axis_vals if x not in base and x not in placeholders]
+        freq_df = freq_df.reindex(base + rest + placeholders)
 
-            # 各维度的"正确顺序"（有内在大小的维度按逻辑排，不按字母）
-            order_map = {
-                '回报率': ['≤500Hz', '1000Hz', '2000Hz', '4000Hz', '8000Hz'],
-                '重量档': ['≤55g', '55-60g', '60-65g', '65-70g', '70-80g', '>80g'],
-                'eDPI档': edpi_labels,  # 直接引用，保证和pd.cut用的完全一致
-                '尺寸': ['小', '中', '大'],
-                '连接方式': ['有线', '无线'],
-                '长度': ['≤118mm', '118-120mm', '120-122mm', '122-124gmm', '124-126mm', '126-128mm', '128-130mm'],
-                '宽度': ['≤62mm', '62-64mm', '64-66mm', '66-68mm', '68-70mm'],
-                '高度': ['≤38mm', '38-40mm', '40-42mm', '42-44mm'],
-                '隆起位置': ['居中', '后-轻微', '后-适中', '后-明显'],
-                '前端外扩': ['平直', '外扩-轻微', '外扩-中等', '外扩-强烈'],
-                '侧面弧度': ['平直', '内凹', '内凹-强烈'],
-                'DPI档': ['≤400', '401-800', '801-1600', '1601-3200', '>3200'],
-                '回报率上限': ['1000Hz', '4000Hz', '8000Hz'],
-                '传感器最大DPI': ['≤20k', '20-26k', '26-32k', '32-40k', '>40k'],
-                '最大追踪速度': ['≤400', '400-650', '650-750', '750-888', '>888'],
-                '最大加速度': ['≤40G', '40-50G', '50-70G', '70-88G', '>88G'],
-                '传感器类型': ['光学', '激光'],
-            }
+        # reset_index 前先把索引名设成 row_sel，避免它继承成 'Brand' 等字段名
+        bar_df = freq_df.copy()
+        bar_df.index.name = row_sel
+        bar_df = bar_df.reset_index()  # 现在列就是 [row_sel, '选手数']
 
-            PLACEHOLDER = {'未知', '其他'}
+        fig_bar = px.bar(
+            bar_df,
+            x=row_sel, y='选手数', text='选手数',
+            color_discrete_sequence=['#E02020']
+        )
+        fig_bar.update_traces(textposition='outside')
+        fig_bar.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            font_color='#E0E0E0', height=400,
+            xaxis=dict(title=row_sel, type='category', tickfont=dict(size=13)),
+            yaxis=dict(title="", gridcolor='#222'),
+            margin=dict(l=0, r=0, t=10, b=0)
+        )
+        st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
-            def apply_order(df_table, is_rows):
-                """按维度逻辑顺序重排；占位值(未知)永远排到末尾"""
-                sel = row_sel if is_rows else col_sel
-                axis_vals = list(df_table.index if is_rows else df_table.columns)
-                has_total = '合计' in axis_vals
-            
-                placeholders = [x for x in axis_vals if x in PLACEHOLDER]
-            
-                if sel in order_map:
-                    base = [x for x in order_map[sel] if x in axis_vals and x not in placeholders]
-                else:
-                    base = [x for x in axis_vals if x not in placeholders and x != '合计']
-            
-                rest = [x for x in axis_vals
-                        if x not in base and x not in placeholders and x != '合计']
-            
-                final = base + rest + placeholders   # ← 行和列都一样，占位值统一放末尾
-            
-                if has_total:
-                    final = [x for x in final if x != '合计'] + ['合计']
-            
-                return df_table.reindex(index=final) if is_rows else df_table.reindex(columns=final)
+    # ===== 分支2：行列相同 → 警告 =====
+    elif row_sel == col_sel:
+        st.warning("行和列请选不同的维度")
 
-            # —— 热力图（不含合计行列，看扎堆/空白，同样按逻辑顺序排）——
-            ct_heat = pd.crosstab(row_data, col_data)  # 无 margins
-            ct_heat = apply_order(ct_heat, is_rows=True)
-            ct_heat = apply_order(ct_heat, is_rows=False)
-            st.markdown("**🗺️ 分布热力图**（颜色越深=越扎堆，空白格=潜在机会）")
+    # ===== 分支3：正常交叉（原逻辑）=====
+    else:
+        row_col = field_map[row_sel]
+        col_col = field_map[col_sel]
+        row_data = df_ct[row_col].astype(str).replace('nan', '未知').fillna('未知')
+        col_data = df_ct[col_col].astype(str).replace('nan', '未知').fillna('未知')
 
-            import plotly.graph_objects as go
-            fig_ct = go.Figure(data=go.Heatmap(
-                z=ct_heat.values,
-                x=[str(c) for c in ct_heat.columns],
-                y=[str(i) for i in ct_heat.index],
-                text=ct_heat.values,
-                texttemplate="%{text}",
-                textfont={"size": 15, "color": "#FFFFFF"},
-                colorscale=[[0, '#1a1a1a'], [0.01, '#3d0000'], [0.5, '#a01515'], [1, '#E02020']],
-                showscale=True,
-                colorbar=dict(title="选手数"),
-                hovertemplate=f"{row_sel}=%{{y}}<br>{col_sel}=%{{x}}<br>选手数=%{{z}}<extra></extra>"
-            ))
-            heat_height = max(400, min(900, len(ct_heat.index) * 42 + 120))
+        def apply_order(df_table, is_rows):
+            """按维度逻辑顺序重排；占位值(未知)永远排到末尾"""
+            sel = row_sel if is_rows else col_sel
+            axis_vals = list(df_table.index if is_rows else df_table.columns)
+            has_total = '合计' in axis_vals
 
-            fig_ct.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font_color='#E0E0E0', height=heat_height,
-                xaxis_title=col_sel, yaxis_title=row_sel,
-                xaxis=dict(type='category', tickfont=dict(size=13)),
-                yaxis=dict(type='category', tickfont=dict(size=13)),
-                margin=dict(l=0, r=0, t=10, b=0)
-            )
-            st.plotly_chart(fig_ct, use_container_width=True, config={'displayModeBar': False})
-            st.caption("⚠️ 空白格有两种含义：真空白(市场机会) 或 不合理组合(如超重+超小)，需结合设计经验判断")
+            placeholders = [x for x in axis_vals if x in PLACEHOLDER]
+
+            if sel in order_map:
+                base = [x for x in order_map[sel] if x in axis_vals and x not in placeholders]
+            else:
+                base = [x for x in axis_vals if x not in placeholders and x != '合计']
+
+            rest = [x for x in axis_vals
+                    if x not in base and x not in placeholders and x != '合计']
+
+            final = base + rest + placeholders  # ← 行和列都一样，占位值统一放末尾
+
+            if has_total:
+                final = [x for x in final if x != '合计'] + ['合计']
+
+            return df_table.reindex(index=final) if is_rows else df_table.reindex(columns=final)
+
+        # —— 下：热力图（不含合计行列，看扎堆/空白，同样按逻辑顺序排）——
+        ct_heat = pd.crosstab(row_data, col_data)  # 无 margins
+        ct_heat = apply_order(ct_heat, is_rows=True)
+        ct_heat = apply_order(ct_heat, is_rows=False)
+        st.markdown("**🗺️ 分布热力图**（颜色越深=越扎堆，空白格=潜在机会）")
+
+        import plotly.graph_objects as go
+        fig_ct = go.Figure(data=go.Heatmap(
+            z=ct_heat.values,
+            x=[str(c) for c in ct_heat.columns],
+            y=[str(i) for i in ct_heat.index],
+            text=ct_heat.values,
+            texttemplate="%{text}",
+            textfont={"size": 15, "color": "#FFFFFF"},
+            colorscale=[[0, '#1a1a1a'], [0.01, '#3d0000'], [0.5, '#a01515'], [1, '#E02020']],
+            showscale=True,
+            colorbar=dict(title="选手数"),
+            hovertemplate=f"{row_sel}=%{{y}}<br>{col_sel}=%{{x}}<br>选手数=%{{z}}<extra></extra>"
+        ))
+        heat_height = max(400, min(900, len(ct_heat.index) * 42 + 120))
+
+        fig_ct.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            font_color='#E0E0E0', height=heat_height,
+            xaxis_title=col_sel, yaxis_title=row_sel,
+            xaxis=dict(type='category', tickfont=dict(size=13)),
+            yaxis=dict(type='category', tickfont=dict(size=13)),
+            margin=dict(l=0, r=0, t=10, b=0)
+        )
+        st.plotly_chart(fig_ct, use_container_width=True, config={'displayModeBar': False})
+        st.caption("⚠️ 空白格有两种含义：真空白(市场机会) 或 不合理组合(如超重+超小)，需结合设计经验判断")
 
         # --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
         st.markdown("<h2>🔧 鼠标规格对比</h2>", unsafe_allow_html=True)
