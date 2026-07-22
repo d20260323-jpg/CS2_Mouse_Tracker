@@ -550,8 +550,15 @@ def main():
     else:
         st.info("暂无市场简报")
 
-    # --- D. 图表展示（热门型号 + 品牌占比，共享时间滑块联动）---
+    # --- D. 图表展示（热门型号 + 品牌占比，共享时间滑块 + 游戏联动）---
     st.write("")
+
+    # 游戏切换（两个图联动，放在时间选择上方）
+    game_sel_d = st.radio(
+        "游戏", ["全部", "CS2", "Valorant"],
+        horizontal=True, key="d_game_radio",
+        label_visibility="collapsed",
+    )
 
     # 共享时间滑块（横跨整宽，控制下面两个图）
     df_d = df_all.copy().sort_values('QueryTime')
@@ -567,6 +574,9 @@ def main():
     # 用共享时间点重建那个月的快照（两个图共用同一份）
     snap_d = df_d[df_d['QueryTime'] <= sel_month].drop_duplicates('Player', keep='last')
     snap_d = snap_d[snap_d['QueryTime'] >= sel_month - pd.Timedelta(days=350)]
+
+    # 按游戏过滤（选"全部"则不过滤，两个图共用）
+    snap_d = snap_d if game_sel_d == "全部" else snap_d[snap_d['Game'] == game_sel_d]
 
     chart_col1, chart_col2 = st.columns(2)
 
@@ -588,7 +598,7 @@ def main():
         brand_data = snap_d['Brand'].value_counts().reset_index()
         brand_data.columns = ['Brand', 'count']
 
-        # 把占比 <3% 的小品牌合并成「其他」
+        # 把占比 <3% 的小品牌合并成「其他
         total = brand_data['count'].sum()
         brand_data['pct'] = brand_data['count'] / total
         big = brand_data[brand_data['pct'] >= 0.03].copy()
@@ -615,16 +625,24 @@ def main():
                             font_color="#E0E0E0", height=300, margin=dict(l=0, r=0, t=0, b=0),
                             legend=dict(font=dict(size=18, color="#FFFFFF")))
         st.plotly_chart(fig_p, use_container_width=True, config={'displayModeBar': False})
-
     # --- D2. 品牌趋势折线图 ---
     st.markdown("<h2>📈 品牌使用趋势</h2>", unsafe_allow_html=True)
 
-    # 处理数据：按时间 + 品牌统计每个时间点的使用数量
-    # 处理数据：按月重建"存量"——每月底每个品牌有多少人在用（forward-fill
+    # 游戏切换（放在图上方）
+    game_sel_t = st.radio(
+        "游戏", ["全部", "CS2", "Valorant"],
+        horizontal=True, key="trend_game_radio",
+        label_visibility="collapsed",
+    )
+
+    # 处理数据：按月重建"存量"——每月底每个品牌有多少人在用（forward-fill）
     df_trend = df_all.copy()
     df_trend = df_trend.sort_values('QueryTime')
     df_trend = df_trend[df_trend['QueryTime'] >= '2023-09-27']
 
+    # 按游戏过滤（选"全部"则不过滤）
+    if game_sel_t != "全部":
+        df_trend = df_trend[df_trend['Game'] == game_sel_t]
 
     # 生成每个月的月末时间点
     start = df_trend['QueryTime'].min()
@@ -645,40 +663,45 @@ def main():
 
     brand_trend = pd.DataFrame(records)
 
-    # 只展示 Top 5 品牌
-    top_brands = df_trend['Brand'].value_counts().head(5).index.tolist()
-    brand_trend = brand_trend[brand_trend['Brand'].isin(top_brands)]
+    # 没数据时兜底，避免下面 value_counts / 画图报错
+    if brand_trend.empty:
+        st.info(f"无 {game_sel_t} 的品牌趋势数据")
+    else:
+        # 只展示 Top 5 品牌
+        top_brands = df_trend['Brand'].value_counts().head(5).index.tolist()
+        brand_trend = brand_trend[brand_trend['Brand'].isin(top_brands)]
 
-    fig_line = px.line(
-        brand_trend,
-        x='Date',
-        y='Count',
-        color='Brand',
-        markers=True,
-        color_discrete_map=BRAND_COLORS
-    )
-    fig_line.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font_color="#FFFFFF",
-        height=350,
-        margin=dict(l=0, r=0, t=30, b=0),
-        xaxis=dict(gridcolor='#222', tickfont=dict(color='#FFFFFF')),
-        yaxis=dict(gridcolor='#222', title=None,
-                   tickfont=dict(color='#FFFFFF')),
-        legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#FFFFFF'))
-    )
+        fig_line = px.line(
+            brand_trend,
+            x='Date',
+            y='Count',
+            color='Brand',
+            markers=True,
+            color_discrete_map=BRAND_COLORS
+        )
+        fig_line.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color="#FFFFFF",
+            height=350,
+            margin=dict(l=0, r=0, t=30, b=0),
+            xaxis=dict(gridcolor='#222', tickfont=dict(color='#FFFFFF')),
+            yaxis=dict(gridcolor='#222', title=None,
+                       tickfont=dict(color='#FFFFFF')),
+            legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#FFFFFF'))
+        )
 
-    fig_line.add_annotation(
-        text="使用人数",
-        xref="paper", yref="paper",
-        x=0, y=1.05,  # 左上角，Y轴上方
-        showarrow=False,
-        font=dict(color="#FFFFFF", size=13),
-        xanchor="left"
-    )
+        fig_line.add_annotation(
+            text="使用人数",
+            xref="paper", yref="paper",
+            x=0, y=1.05,  # 左上角，Y轴上方
+            showarrow=False,
+            font=dict(color="#FFFFFF", size=13),
+            xanchor="left"
+        )
 
-    st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
+
 
     # --- D3. 鼠标型号趋势对比（多组：组内合并 + 组间对比）---
     import re
