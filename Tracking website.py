@@ -1088,6 +1088,13 @@ def main():
     st.markdown("<h2>🖱️ 鼠标物理属性分布</h2>", unsafe_allow_html=True)
     st.caption("职业选手当前在用鼠标的物理设计特征分布，供硬件设计参考")
 
+    # 游戏切换（三个图联动，放在时间选择上方）
+    game_sel_p = st.radio(
+        "游戏", ["全部", "CS2", "Valorant"],
+        horizontal=True, key="phys_game_radio",
+        label_visibility="collapsed",
+    )
+
     # 时间滑块（这三个物理属性图共用）
     df_phys_all = df_all.copy()
     df_phys_all['QueryTime'] = pd.to_datetime(df_phys_all['QueryTime'], errors='coerce')
@@ -1106,6 +1113,10 @@ def main():
     df_phys = df_phys_all[df_phys_all['QueryTime'] <= sel_month_phys].copy()
     df_phys = df_phys.sort_values('QueryTime').drop_duplicates('Player', keep='last')
     df_phys = df_phys[df_phys['QueryTime'] >= sel_month_phys - pd.Timedelta(days=350)]
+
+    # 按游戏过滤（选"全部"则不过滤，三个图共用）
+    if game_sel_p != "全部":
+        df_phys = df_phys[df_phys['Game'] == game_sel_p]
 
     phys_c1, phys_c2, phys_c3 = st.columns(3)
 
