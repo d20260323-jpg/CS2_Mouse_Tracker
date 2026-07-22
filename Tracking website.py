@@ -943,6 +943,13 @@ def main():
     # --- D4. 设置维度分布（eDPI / 回报率 / 重量）---
     st.markdown("<h2>📊 设置与硬件分布</h2>", unsafe_allow_html=True)
 
+    # 游戏切换（整个模块联动，放在时间选择上方）
+    game_sel = st.radio(
+        "游戏", ["全部", "CS2", "Valorant"],
+        horizontal=True, key="dist_game_radio",
+        label_visibility="collapsed",
+    )
+
     # 时间滑块（这三个图共用）
     df_dist = df_all.copy().sort_values('QueryTime')
     month_opts_dist = pd.date_range(start=df_dist['QueryTime'].min(), end=df_dist['QueryTime'].max(), freq='ME')
@@ -958,16 +965,15 @@ def main():
     snap_dist = df_dist[df_dist['QueryTime'] <= sel_month_dist].drop_duplicates('Player', keep='last')
     snap_dist = snap_dist[snap_dist['QueryTime'] >= sel_month_dist - pd.Timedelta(days=350)]
 
+    # 按游戏过滤（整个模块联动，三个图共用）
+    # 按游戏过滤（选"全部"则不过滤，三个图共用）
+    snap_game = snap_dist if game_sel == "全部" else snap_dist[snap_dist['Game'] == game_sel]
+
     dist_c1, dist_c2, dist_c3 = st.columns(3)
 
     # —— eDPI 分布 ——
     with dist_c1:
-        game_sel = st.radio(
-            "游戏", ["CS2", "Valorant"],
-            horizontal=True, key="edpi_game_radio",
-            label_visibility="collapsed",
-        )
-        st.markdown(f"<h2 style='font-size:20px;'>🎯 eDPI 分布（{game_sel}）</h2>",
+        st.markdown("<h2 style='font-size:20px;'>🎯 eDPI 分布</h2>",
                     unsafe_allow_html=True)
 
         BUCKETS = {
@@ -976,9 +982,9 @@ def main():
             "Valorant": ([0, 160, 220, 280, 340, 99999],
                          ['<160', '160-220', '220-280', '280-340', '≥340']),
         }
-        bins, labels = BUCKETS[game_sel]
+        bucket_key = "CS2" if game_sel == "全部" else game_sel
+        bins, labels = BUCKETS[bucket_key]
 
-        snap_game = snap_dist[snap_dist['Game'] == game_sel]
         edpi = pd.to_numeric(snap_game['eDPI'], errors='coerce').dropna()
 
         if len(edpi) > 0:
@@ -997,7 +1003,7 @@ def main():
     # —— 回报率分布 ——
     with dist_c2:
         st.markdown("<h2 style='font-size:20px;'>⚡ 回报率分布</h2>", unsafe_allow_html=True)
-        hz = pd.to_numeric(snap_dist['HZ'], errors='coerce').dropna()
+        hz = pd.to_numeric(snap_game['HZ'], errors='coerce').dropna()
         if len(hz) > 0:
             # 固定档位，缺的补0，保证排版不变
             fixed_hz = [500, 1000, 2000, 4000, 8000]
@@ -1013,25 +1019,36 @@ def main():
             fig_h.update_traces(textposition='outside')  # 回报率
             st.plotly_chart(fig_h, use_container_width=True, config={'displayModeBar': False})
         else:
-            st.info("无回报率数据")
+            st.info(f"无 {game_sel} 的回报率数据")
 
     # —— 重量分布 ——
     with dist_c3:
         st.markdown("<h2 style='font-size:20px;'>⚖️ 重量分布</h2>", unsafe_allow_html=True)
-        weight = pd.to_numeric(snap_dist['weight'], errors='coerce').dropna()  # ← 注意列名
+        weight = pd.to_numeric(snap_game['weight'], errors='coerce').dropna()
         if len(weight) > 0:
             bins_w = [0, 60, 70, 80, 999]
             labels_w = ['超轻<60g', '轻60-70g', '中70-80g', '重≥80g']
             w_binned = pd.cut(weight, bins=bins_w, labels=labels_w, right=False)
             w_data = w_binned.value_counts().reindex(labels_w).reset_index()
             w_data.columns = ['区间', 'count']
+
+            # 轻→浅、重→深，显式绑定，跟顺序无关
+            color_map_w = {
+                '超轻<60g': '#A1D99B',  # 浅
+                '轻60-70g': '#41AB5D',  # 跳两档
+                '中70-80g': '#177245',  # 跳两档
+                '重≥80g': '#00441B',  # 最深
+            }
+
             fig_w = px.pie(w_data, values='count', names='区间', hole=0.4,
-                           color_discrete_sequence=px.colors.sequential.Greens_r)
+                           color='区间',
+                           color_discrete_map=color_map_w,
+                           category_orders={'区间': labels_w})
             fig_w.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                                 font_color="#E0E0E0", height=280, margin=dict(l=0, r=0, t=0, b=0))
             st.plotly_chart(fig_w, use_container_width=True, config={'displayModeBar': False})
         else:
-            st.info("无重量数据")
+            st.info(f"无 {game_sel} 的重量数据")
 
     # --- D4-A. 物理属性分布：形状 / 尺寸 / 连接方式（ID设计师视角）---
     st.markdown("<h2>🖱️ 鼠标物理属性分布</h2>", unsafe_allow_html=True)
