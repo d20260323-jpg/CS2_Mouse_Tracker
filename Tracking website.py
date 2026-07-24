@@ -433,6 +433,25 @@ def load_data():
         st.error(f"数据解析失败: {e}")
         return None, None
 
+def get_month_options(series):
+    """生成月份选项：完整月份用月末日期；如果最新数据还没到月末，
+    把"数据实际最新一天"也加进去，这样才能看到本月截至今天的快照，
+    而不是卡在上个月月末。"""
+    s = series.dropna()
+    if s.empty:
+        return []
+    min_d, max_d = s.min(), s.max()
+    opts = pd.date_range(start=min_d, end=max_d, freq='ME').tolist()
+    if not opts or opts[-1] != max_d and not max_d.is_month_end:
+        opts.append(max_d)
+    return opts
+
+
+def format_month_option(d):
+    """完整月末显示 2026-07；未到月末的当前快照显示 2026-07（截至07-24）"""
+    if d.is_month_end:
+        return d.strftime('%Y-%m')
+    return f"{d.strftime('%Y-%m')}（截至{d.strftime('%m-%d')}）"
 
 # ==========================================
 # 3. 网页主结构
@@ -562,12 +581,12 @@ def main():
 
     # 共享时间滑块（横跨整宽，控制下面两个图）
     df_d = df_all.copy().sort_values('QueryTime')
-    month_opts = pd.date_range(start=df_d['QueryTime'].min(), end=df_d['QueryTime'].max(), freq='ME')
+    month_opts = get_month_options(df_d['QueryTime'])
     sel_month = st.selectbox(
         "📅 选择时间点",
-        options=list(month_opts),
-        index=len(month_opts) - 1,  # 默认选最后一个月
-        format_func=lambda d: d.strftime('%Y-%m'),
+        options=month_opts,
+        index=len(month_opts) - 1,
+        format_func=format_month_option,
         key='shared_month_slider'
     )
 
@@ -644,10 +663,8 @@ def main():
     if game_sel_t != "全部":
         df_trend = df_trend[df_trend['Game'] == game_sel_t]
 
-    # 生成每个月的月末时间点
-    start = df_trend['QueryTime'].min()
-    end = df_trend['QueryTime'].max()
-    months = pd.date_range(start=start, end=end, freq='ME')
+    # 生成每个月的时间点（含截至今天的最新快照点）
+    months = get_month_options(df_trend['QueryTime'])
 
     records = []
     active_days = 350  # 只算最近 350 天还有记录的选手（和飞书口径一致）
@@ -922,7 +939,7 @@ def main():
     active_groups = [g for g in st.session_state['trend_groups'] if g['mice']]
 
     if active_groups:
-        months = pd.date_range(start=df_m['QueryTime'].min(), end=end_all, freq='ME')
+        months = get_month_options(df_m['QueryTime'])
         active_days = 350
 
         records = []
@@ -986,12 +1003,12 @@ def main():
 
     # 时间滑块（这三个图共用）
     df_dist = df_all.copy().sort_values('QueryTime')
-    month_opts_dist = pd.date_range(start=df_dist['QueryTime'].min(), end=df_dist['QueryTime'].max(), freq='ME')
+    month_opts_dist = get_month_options(df_dist['QueryTime'])
     sel_month_dist = st.selectbox(
         "📅 选择时间点（下方三个分布联动）",
-        options=list(month_opts_dist),
-        index=len(month_opts_dist) - 1,  # 默认选最后一个月
-        format_func=lambda d: d.strftime('%Y-%m'),
+        options=month_opts_dist,
+        index=len(month_opts_dist) - 1,
+        format_func=format_month_option,
         key='dist_month_slider'
     )
 
@@ -1099,13 +1116,12 @@ def main():
     df_phys_all = df_all.copy()
     df_phys_all['QueryTime'] = pd.to_datetime(df_phys_all['QueryTime'], errors='coerce')
     df_phys_all = df_phys_all.dropna(subset=['QueryTime'])
-    month_opts_phys = pd.date_range(start=df_phys_all['QueryTime'].min(),
-                                    end=df_phys_all['QueryTime'].max(), freq='ME')
+    month_opts_phys = get_month_options(df_phys_all['QueryTime'])
     sel_month_phys = st.selectbox(
         "📅 选择时间点（下方三个分布联动）",
-        options=list(month_opts_phys),
-        index=len(month_opts_phys) - 1,  # 默认选最后一个月
-        format_func=lambda d: d.strftime('%Y-%m'),
+        options=month_opts_phys,
+        index=len(month_opts_phys) - 1,
+        format_func=format_month_option,
         key='phys_month_slider'
     )
 
