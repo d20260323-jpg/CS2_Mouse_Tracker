@@ -2,9 +2,8 @@ name: Keep Streamlit App Awake
 
 on:
   schedule:
-    # 每隔 6 小时跑一次(UTC 时间),防止超过 12 小时无访问导致休眠
     - cron: '0 */6 * * *'
-  workflow_dispatch:  # 允许手动触发,方便测试
+  workflow_dispatch:
 
 jobs:
   ping:
@@ -12,4 +11,4 @@ jobs:
     steps:
       - name: Ping the app
         run: |
-          curl -sSL "https://你的应用名.streamlit.app" -o /dev/null -w "HTTP Status: %{http_code}\n"
+          curl -sSL "https://cs2mousetracker-dd6zri2zn7hatssysq28q5.streamlit.app/" -o /dev/null -w "HTTP Status: %{http_code}\n"
