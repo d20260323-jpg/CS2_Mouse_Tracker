@@ -948,7 +948,12 @@ def main():
             snap = snap[snap['QueryTime'] >= mth - pd.Timedelta(days=active_days)]
 
             for g in active_groups:
-                line_name = g['name'].strip() if g['name'].strip() else "未命名鼠标"
+                if g['name'].strip():
+                    line_name = g['name'].strip()
+                elif g['mice']:
+                    line_name = g['mice'][0]
+                else:
+                    line_name = "未命名鼠标"
                 cnt = snap['Mouse_Normalized'].isin(g['mice']).sum()
                 records.append({'Date': mth, '鼠标': line_name, 'Count': int(cnt)})
 
