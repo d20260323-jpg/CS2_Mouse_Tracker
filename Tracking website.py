@@ -233,6 +233,64 @@ STAR_PLAYERS = {
     'dupreeh',  # 五冠王，Major 冠军最多
     'gla1ve',  # Astralis 指挥
     'Magisk',  # Astralis
+    
+# —— VALORANT: 2021 Champions（Acend）——
+    'Cerq',
+
+    # —— VALORANT: 2022 Champions（LOUD，巴西首冠）——
+    'aspas',      # 2022 Champions MVP
+    'Sacy',
+    'Less',
+    'saadhak',
+    'pANcada',
+
+    # —— VALORANT: 2023 Champions（Evil Geniuses）——
+    'Demon1',     # 2023 Champions MVP
+    'jawgemo',
+    'Boostio',
+    'C0M',
+    'Ethan',      # 2023 EG冠军成员，2025随NRG再夺冠，两届世界冠军唯一选手
+
+    # —— VALORANT: 2024 Champions（EDward Gaming，中国首冠）——
+    'ZmjjKK',     # 2024 Champions MVP，单场111杀纪录
+    'S1mon',
+    'Smoggy',
+    'nobody',
+    'CHICHOO',
+
+    # —— VALORANT: 2025 Champions（NRG）——
+    'brawk',      # 2025 Champions MVP，首次参赛即封神
+    'mada',
+    's0m',
+    'FiNESSE',
+
+    # —— VALORANT: Fnatic（长期豪门，2025 Champions亚军）——
+    'Derke',      # 常年顶级duelist
+    'Boaster',    # 传奇队长，人气极高
+    'Alfajer',
+    'Chronicle',
+    'Leo',
+    'kaajak',     # 2025 EMEA赛区年度最佳选手
+
+    # —— VALORANT: 2025赛季奖项 ——
+    'f0rsakeN',   # 2025年度最佳选手，兼Masters Toronto 2025 MVP，全能flex位
+
+    # —— VALORANT: 2026 Masters Santiago 冠军（Nongshim RedForce）——
+    'Dambi',      # Masters Santiago 2026 MVP，一年内从二级联赛升到MVP
+
+    # —— VALORANT: 2026 Masters London 冠军（Leviatán，首冠）——
+    'Neon',       # 注意：这是选手ID(Bruno Rodríguez)，正好与游戏角色同名；Masters London 2026 MVP
+
+    # —— VALORANT: Esports World Cup 冠军/MVP ——
+    'Wo0t',       # 2025 EWC冠军(Team Heretics) MVP
+    'Cryocells',  # 2026 EWC冠军(100 Thieves) MVP
+    'Asuna',      # 100T队长，2026 EWC夺得队史首个国际奖杯
+
+    # —— VALORANT: 常年人气/传奇选手 ——
+    'TenZ',       # Sentinels，人气与影响力顶级
+    'ScreaM',     # 欧洲传奇瞄准手，老将
+    'yay',        # Sentinels，2023 LOCK//IN MVP
+    
 }
 
 
