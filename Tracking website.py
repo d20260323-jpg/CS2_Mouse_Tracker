@@ -393,13 +393,6 @@ st.markdown("""
         border-radius: 0 8px 8px 0;
     }
 
-    /* 鼠标图片发光效果 */
-    .hero-img {
-    filter: drop-shadow(0 0 20px rgba(224, 32, 32, 0.4));
-    max-width: 100%;
-    height: auto;
-    border-radius: 12px;        /* ← 加这行，图片带圆角 */
-    }
 
     .briefing-card {
     background: #151515;
@@ -523,26 +516,17 @@ def main():
         st.markdown('<h2 style="color:#E02020; margin:0; border:none;">ZOWIE</h2>', unsafe_allow_html=True)
 
     # --- B. Hero 视觉区 ---
+    # --- B. Hero 视觉区 ---
     st.markdown('<div class="hero-container">', unsafe_allow_html=True)
-    h_col1, h_col2 = st.columns([1.5, 1])
-
-    with h_col1:
-        st.markdown("""
-            <div style="padding-top:10px;">
-                <p style="color:#E02020; font-weight:bold; letter-spacing:3px; margin-bottom:5px;">PROFESSIONAL CHOICE</p>
-                <h1>FPS PROS<br><span style="color:#E02020;">GEAR</span> TRACKER</h1>
-                <p style="color:#888; font-size:18px; margin-top:15px; max-width:450px;">
-                    实时同步全球顶尖选手的鼠标选择。基于三年核心样本数据分析。
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-
-    with h_col2:
-        hero_b64 = get_base64_image(HERO_MOUSE_PATH)
-        if hero_b64:
-            st.markdown(
-                f'<div style="text-align:right; margin-bottom:60px;"><img src="data:image/png;base64,{hero_b64}" class="hero-img"></div>',
-                unsafe_allow_html=True)
+    st.markdown("""
+        <div style="padding-top:10px;">
+            <p style="color:#E02020; font-weight:bold; letter-spacing:3px; margin-bottom:5px;">PROFESSIONAL CHOICE</p>
+            <h1>FPS PROS<br><span style="color:#E02020;">GEAR</span> TRACKER</h1>
+            <p style="color:#888; font-size:18px; margin-top:15px; max-width:450px;">
+                实时同步全球顶尖选手的鼠标选择。基于三年核心样本数据分析。
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # 加载数据
