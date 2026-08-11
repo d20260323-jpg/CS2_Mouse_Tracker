@@ -83,7 +83,7 @@ def clean_numeric_fields(df):
     return df
 
 # 图片路径
-EXCEL_PATH = "FPS_mouse_tracking.xlsx"  # EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx"
+EXCEL_PATH = "https://github.com/d20260323-jpg/CS2_Mouse_Tracker/blob/main/FPS_mouse_tracking.xlsx"  # EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx"
 ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
 HERO_MOUSE_PATH = "assets/hero_mouse.png"
 
