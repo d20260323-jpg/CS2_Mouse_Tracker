@@ -760,7 +760,8 @@ def main():
         )
 
         st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
-
+        
+     st.caption("📌 统计口径:仅统计近350天内仍有更新记录(即近期仍活跃)的选手,长期未更新/退役选手不计入")
 
     # --- D3. 鼠标型号趋势对比（多组：组内合并 + 组间对比）---
     import re
