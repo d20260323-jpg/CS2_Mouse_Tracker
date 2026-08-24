@@ -1659,7 +1659,7 @@ df_all['Changed'] = df_all['Changed'].fillna('').astype(str).str.strip().str.upp
 df_all['QueryTime'] = pd.to_datetime(df_all['QueryTime'], errors='coerce')
 
     # 要对比的设置字段：列名 -> 显示名
-    SETTING_FIELDS = {
+SETTING_FIELDS = {
         'DPI': 'DPI',
         'polling_rate': '回报率',
         'Sens': '灵敏度',
