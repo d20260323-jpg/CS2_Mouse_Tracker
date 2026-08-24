@@ -1653,11 +1653,10 @@ else:
     st.markdown("<h2>🔄 最近十次变动动态</h2>", unsafe_allow_html=True)
 
     # 清洗 + 转时间
-    if 'Changed' not in df_all.columns:
+if 'Changed' not in df_all.columns:
     df_all['Changed'] = ''
-else:
-    df_all['Changed'] = df_all['Changed'].astype(str).str.strip().str.upper()
-    df_all['QueryTime'] = pd.to_datetime(df_all['QueryTime'], errors='coerce')
+df_all['Changed'] = df_all['Changed'].fillna('').astype(str).str.strip().str.upper()
+df_all['QueryTime'] = pd.to_datetime(df_all['QueryTime'], errors='coerce')
 
     # 要对比的设置字段：列名 -> 显示名
     SETTING_FIELDS = {
