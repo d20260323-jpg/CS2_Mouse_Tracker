@@ -1528,36 +1528,36 @@ def main():
         st.plotly_chart(fig_ct, use_container_width=True, config={'displayModeBar': False})
         st.caption("⚠️ 空白格有两种含义：真空白(市场机会) 或 不合理组合(如超重+超小)，需结合设计经验判断")
 
-        # --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
-       # 规格数据源 = 表二
-spec_cols = ['brand','size','length','width','height','shape','hump_placement','front_flare','side_curvature','thumb_rest','ring_finger_rest','wireless','weight','dpi','polling_rate','side_buttons','middle_buttons','material','sensor','sensor_type','sensor_dpi','sensor_tracking_speed','acceleration','switch','scroll']
+# --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
+# 规格数据源 = 表二
+spec_cols=['brand','size','length','width','height','shape','hump_placement','front_flare','side_curvature','thumb_rest','ring_finger_rest','wireless','weight','dpi','polling_rate','side_buttons','middle_buttons','material','sensor','sensor_type','sensor_dpi','sensor_tracking_speed','acceleration','switch','scroll']
 
 try:
-    df_spec_raw = load_spec_table(SPEC_EXCEL_PATH)
+    df_spec_raw=load_spec_table(SPEC_EXCEL_PATH)
 except Exception as e:
     st.error(f"❌ 无法读取规格表(表二): {SPEC_EXCEL_PATH} — {e}")
-    df_spec_raw = pd.DataFrame(columns=['Mouse'] + spec_cols)
+    df_spec_raw=pd.DataFrame(columns=['Mouse']+spec_cols)
 
-spec_cols = [c for c in spec_cols if c in df_spec_raw.columns]
-df_spec = df_spec_raw.dropna(subset=['Mouse']).drop_duplicates('Mouse').set_index('Mouse')
+spec_cols=[c for c in spec_cols if c in df_spec_raw.columns]
+df_spec=df_spec_raw.dropna(subset=['Mouse']).drop_duplicates('Mouse').set_index('Mouse')
 
 if 'compare_mice' not in st.session_state:
-    st.session_state['compare_mice'] = []
+    st.session_state['compare_mice']=[]
 
-all_mouse_options = sorted(df_spec.index.dropna().unique().tolist())
-st.session_state['compare_mice'] = [m for m in st.session_state['compare_mice'] if m in all_mouse_options]
+all_mouse_options=sorted(df_spec.index.dropna().unique().tolist())
+st.session_state['compare_mice']=[m for m in st.session_state['compare_mice'] if m in all_mouse_options]
 
-selected = st.multiselect(
+selected=st.multiselect(
     "🔍 搜索并选择鼠标型号（可输入关键词筛选，支持多选对比）",
     options=all_mouse_options,
     default=st.session_state['compare_mice'],
     key='spec_multiselect',
     placeholder="输入关键词，如 superlight / EC2 / viper"
 )
-st.session_state['compare_mice'] = selected
+st.session_state['compare_mice']=selected
 
 if st.session_state['compare_mice']:
-    row_labels = {
+    row_labels={
         'brand':'品牌','size':'尺寸','length':'长度(mm)','width':'宽度(mm)','height':'高度(mm)',
         'shape':'形状','hump_placement':'驼峰位置','front_flare':'前端外扩','side_curvature':'侧面曲率',
         'thumb_rest':'拇指托','ring_finger_rest':'无名指托','wireless':'连接方式','weight':'重量(g)',
@@ -1566,15 +1566,15 @@ if st.session_state['compare_mice']:
         'sensor_tracking_speed':'传感器追踪速度','acceleration':'最大加速度','switch':'微动','scroll':'滚轮编码器'
     }
 
-    size_map = {'small':'小','medium':'中','large':'大'}
-    shape_map = {'symmetrical':'对称','ergonomic':'人体工学','hybrid':'混合'}
-    hump_map = {
+    size_map={'small':'小','medium':'中','large':'大'}
+    shape_map={'symmetrical':'对称','ergonomic':'人体工学','hybrid':'混合'}
+    hump_map={
         'center':'中部',
         'back - minimal':'后部 - 低',
         'back - moderate':'后部 - 中',
         'back - aggressive':'后部 - 高'
     }
-    front_flare_map = {
+    front_flare_map={
         'flat':'平直',
         'outward - slight':'外扩 - 轻微',
         'outward - moderate':'外扩 - 中等',
@@ -1583,13 +1583,13 @@ if st.session_state['compare_mice']:
         'inward - moderate':'内收 - 中等',
         'inward - aggressive':'内收 - 明显'
     }
-    curvature_map = {
+    curvature_map={
         'flat':'平直',
         'inward':'内收',
         'inward - aggressive':'明显内收',
         'outward - aggressive':'明显外凸'
     }
-    material_map = {
+    material_map={
         'plastic':'塑料',
         'carbon-fiber-composite':'碳纤维复合材料',
         'carbon fiber composite':'碳纤维复合材料',
@@ -1597,129 +1597,122 @@ if st.session_state['compare_mice']:
         'metal':'金属',
         'microcrystalline composite':'微晶复合材料'
     }
-    sensor_type_map = {'optical':'光学','laser':'激光'}
+    sensor_type_map={'optical':'光学','laser':'激光'}
 
-def fmt(mouse,col):
+    def fmt(mouse,col):
         if mouse not in df_spec.index or col not in df_spec.columns:
             return '—'
-        v = df_spec.at[mouse,col]
+        v=df_spec.at[mouse,col]
         if pd.isna(v):
             return '—'
-
         if col in ['thumb_rest','ring_finger_rest']:
-            return '有' if float(v) == 1 else '无'
-
-        if col == 'wireless':
-            return '无线' if float(v) == 1 else '有线'
-
-        if col == 'brand' and isinstance(v,str):
-            v = v.strip()
+            return '有' if float(v)==1 else '无'
+        if col=='wireless':
+            return '无线' if float(v)==1 else '有线'
+        if col=='brand' and isinstance(v,str):
+            v=v.strip()
             if v.startswith('[') and v.endswith(']'):
-                v = v.replace('[','').replace(']','').replace('"','').replace("'","").replace(', ',' / ')
+                v=v.replace('[','').replace(']','').replace('"','').replace("'","").replace(', ',' / ')
             return v
-
         if isinstance(v,(int,float)):
             return int(v) if float(v).is_integer() else round(float(v),2)
-
         if isinstance(v,str):
-            v = v.strip()
-            lv = v.lower()
-            if col == 'size':
+            v=v.strip()
+            lv=v.lower()
+            if col=='size':
                 return size_map.get(lv,v)
-            if col == 'shape':
+            if col=='shape':
                 return shape_map.get(lv,v)
-            if col == 'hump_placement':
+            if col=='hump_placement':
                 return hump_map.get(lv,v)
-            if col == 'front_flare':
+            if col=='front_flare':
                 return front_flare_map.get(lv,v)
-            if col == 'side_curvature':
+            if col=='side_curvature':
                 return curvature_map.get(lv,v)
-            if col == 'material':
+            if col=='material':
                 return material_map.get(lv,v)
-            if col == 'sensor_type':
+            if col=='sensor_type':
                 return sensor_type_map.get(lv,v)
             return v
-
         return v
 
-    table = {mouse:[fmt(mouse,c) for c in spec_cols] for mouse in st.session_state['compare_mice']}
-    compare_df = pd.DataFrame(table,index=[row_labels.get(c,c) for c in spec_cols])
+    table={mouse:[fmt(mouse,c) for c in spec_cols] for mouse in st.session_state['compare_mice']}
+    compare_df=pd.DataFrame(table,index=[row_labels.get(c,c) for c in spec_cols])
     st.dataframe(compare_df,use_container_width=True)
     st.caption("“—”表示该型号此项参数在数据库中暂缺")
 else:
     st.info("搜索并添加鼠标后，这里会显示参数对比表")
 
-    # --- E. 变动快讯（显示具体变更内容）---
-    st.markdown("<h2>🔄 最近十次变动动态</h2>", unsafe_allow_html=True)
+# --- E. 变动快讯（显示具体变更内容）---
+st.markdown("<h2>🔄 最近十次变动动态</h2>",unsafe_allow_html=True)
 
-    # 清洗 + 转时间
+# 清洗 + 转时间
 if 'Changed' not in df_all.columns:
-    df_all['Changed'] = ''
-df_all['Changed'] = df_all['Changed'].fillna('').astype(str).str.strip().str.upper()
-df_all['QueryTime'] = pd.to_datetime(df_all['QueryTime'], errors='coerce')
+    df_all['Changed']=''
+df_all['Changed']=df_all['Changed'].fillna('').astype(str).str.strip().str.upper()
+df_all['QueryTime']=pd.to_datetime(df_all['QueryTime'],errors='coerce')
 
-    # 要对比的设置字段：列名 -> 显示名
-SETTING_FIELDS = {
-        'DPI': 'DPI',
-        'polling_rate': '回报率',
-        'Sens': '灵敏度',
-        'eDPI': 'eDPI',
-    }
+# 要对比的设置字段：列名 -> 显示名
+SETTING_FIELDS={
+    'DPI':'DPI',
+    'polling_rate':'回报率',
+    'Sens':'灵敏度',
+    'eDPI':'eDPI',
+}
 
-    # 为每位选手按时间排序，取出"上一条"的各设置值，用于差异对比
-    df_all = df_all.sort_values(['Player', 'QueryTime'])
-    for col in SETTING_FIELDS:
-        if col in df_all.columns:
-            df_all[f'prev_{col}'] = df_all.groupby('Player')[col].shift(1)
+# 为每位选手按时间排序，取出“上一条”的各设置值，用于差异对比
+df_all=df_all.sort_values(['Player','QueryTime'])
+for col in SETTING_FIELDS:
+    if col in df_all.columns:
+        df_all[f'prev_{col}']=df_all.groupby('Player')[col].shift(1)
 
 def diff_settings(row):
-        """列出该行相对上一条记录，具体变了哪些设置"""
-        changes = []
-        for col, label in SETTING_FIELDS.items():
-            if col not in df_all.columns:
-                continue
-            old, new = row.get(f'prev_{col}'), row.get(col)
-            if pd.notnull(old) and pd.notnull(new) and str(old) != str(new):
-                changes.append(f'{label} {old}→{new}')
-        return changes
+    """列出该行相对上一条记录，具体变了哪些设置"""
+    changes=[]
+    for col,label in SETTING_FIELDS.items():
+        if col not in df_all.columns:
+            continue
+        old,new=row.get(f'prev_{col}'),row.get(col)
+        if pd.notnull(old) and pd.notnull(new) and str(old)!=str(new):
+            changes.append(f'{label} {old}→{new}')
+    return changes
 
 def describe_change(row):
-        ctype = str(row['Changed']).strip().upper()
-        mouse = row.get('Mouse', '未知')
-        if ctype == 'MOUSE':
-            return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span>'
-        if ctype == 'BOTH':
-            detail = '；'.join(diff_settings(row))
-            tail = f'（{detail}）' if detail else '（设备与设置同时变动）'
-            return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span> {tail}'
-        if ctype == 'SETTINGS':
-            detail = '；'.join(diff_settings(row))
-            tail = f'：{detail}' if detail else '（DPI / 回报率等）'
-            return f'选手 <b>{row["Player"]}</b> 更新了设置{tail}'
-        if ctype == 'NEW':
-            return f'新增选手 <b>{row["Player"]}</b>（<span style="color:#E02020;">{mouse}</span>）'
-        return f'选手 <b>{row["Player"]}</b> 数据有更新'
+    ctype=str(row['Changed']).strip().upper()
+    mouse=row.get('Mouse','未知')
+    if ctype=='MOUSE':
+        return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span>'
+    if ctype=='BOTH':
+        detail='；'.join(diff_settings(row))
+        tail=f'（{detail}）' if detail else '（设备与设置同时变动）'
+        return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span> {tail}'
+    if ctype=='SETTINGS':
+        detail='；'.join(diff_settings(row))
+        tail=f'：{detail}' if detail else '（DPI / 回报率等）'
+        return f'选手 <b>{row["Player"]}</b> 更新了设置{tail}'
+    if ctype=='NEW':
+        return f'新增选手 <b>{row["Player"]}</b>（<span style="color:#E02020;">{mouse}</span>）'
+    return f'选手 <b>{row["Player"]}</b> 数据有更新'
 
-    # 排序取最近 10 条（差异列已算好，这里再按时间倒序）
-    CHANGE_TYPES = ['MOUSE', 'BOTH', 'SETTINGS', 'NEW']
-    changed_list = (
-        df_all[df_all['Changed'].isin(CHANGE_TYPES)]
-        .sort_values('QueryTime', ascending=False)
-        .head(10)
-    )
+# 排序取最近10条
+CHANGE_TYPES=['MOUSE','BOTH','SETTINGS','NEW']
+changed_list=(
+    df_all[df_all['Changed'].isin(CHANGE_TYPES)]
+    .sort_values('QueryTime',ascending=False)
+    .head(10)
+)
 
-    if not changed_list.empty:
-        for _, row in changed_list.iterrows():
-            time_str = row['QueryTime'].strftime('%Y-%m-%d %H:%M') if pd.notnull(row['QueryTime']) else "N/A"
-            st.markdown(f"""
-                <div class="change-log">
-                    <span style="color:#666; font-size:12px;">{time_str}</span><br>
-                    {describe_change(row)}
-                </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("目前监测中... 暂无近期设备变更记录。")
+if not changed_list.empty:
+    for _,row in changed_list.iterrows():
+        time_str=row['QueryTime'].strftime('%Y-%m-%d %H:%M') if pd.notnull(row['QueryTime']) else "N/A"
+        st.markdown(f"""
+            <div class="change-log">
+                <span style="color:#666; font-size:12px;">{time_str}</span><br>
+                {describe_change(row)}
+            </div>
+        """,unsafe_allow_html=True)
+else:
+    st.info("目前监测中... 暂无近期设备变更记录。")
 
-
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
