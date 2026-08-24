@@ -1528,138 +1528,152 @@ def main():
         st.plotly_chart(fig_ct, use_container_width=True, config={'displayModeBar': False})
         st.caption("⚠️ 空白格有两种含义：真空白(市场机会) 或 不合理组合(如超重+超小)，需结合设计经验判断")
 
-# --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
-# 规格数据源 = 表二
-        spec_cols = ['weight', 'size', 'shape', 'wireless', 'length', 'width', 
-                     'height', 'material', 'sensor', 'switch'] 
-        try: 
-            df_spec_raw = load_spec_table(SPEC_EXCEL_PATH) 
-        except Exception as e: 
-            st.error(f"❌ 无法读取规格表(表二): {SPEC_EXCEL_PATH} — {e}") 
-            df_spec_raw = pd.DataFrame(columns=['Mouse'] + spec_cols) 
-        # 只保留表二里真实存在的规格列，避免列名对不上 
-        spec_cols = [c for c in spec_cols if c in df_spec_raw.columns] 
-        # 同型号可能有多行 → 按型号去重取第一条 
-        df_spec = (df_spec_raw.dropna(subset=['Mouse']) 
-                   .drop_duplicates('Mouse') 
-                   .set_index('Mouse')) 
-        # 初始化对比清单 
-        if 'compare_mice' not in st.session_state: 
-            st.session_state['compare_mice'] = [] 
-        # 候选型号 = 表二里的鼠标（保证每个选出来都有参数） 
-        all_mouse_options = sorted(df_spec.index.dropna().unique().tolist()) 
-        # 清掉之前可能残留、但表二里没有的旧选择，避免 multiselect 报错 
-        st.session_state['compare_mice'] = [ 
-            m for m in st.session_state['compare_mice'] if m in all_mouse_options 
-        ] 
-        selected = st.multiselect( 
-            "🔍 搜索并选择鼠标型号（可输入关键词筛选，支持多选对比）", 
-            options=all_mouse_options, 
-            default=st.session_state['compare_mice'], 
-            key='spec_multiselect', 
-            placeholder="输入关键词，如 superlight / EC2 / viper" 
-        ) 
-        st.session_state['compare_mice'] = selected 
-        if st.session_state['compare_mice']: 
-            # 中文参数名映射 
-            row_labels = { 
-                'weight': '重量(g)', 'size': '尺寸', 'shape': '形状', 
-                'wireless': '连接方式', 'length': '长(mm)', 'width': '宽(mm)', 
-                'height': '高(mm)', 'material': '材质', 'sensor': '传感器', 'switch': '微动', 
-            } 
-            # 值的中英转换（复用已清洗字段） 
-            val_map = { 
-                'symmetrical': '对称', 'ergonomic': '人体工学', 'hybrid': '混合', 
-                'large': '大', 'medium': '中', 'small': '小', 
-            } 
-            def fmt(mouse, col): 
-                if mouse not in df_spec.index: 
-                    return '—' 
-                v = df_spec.at[mouse, col] 
-                if pd.isna(v): 
-                    return '—' 
-                v = val_map.get(v, v)  # 中文化 
-                # 数字去掉多余小数 
-                if isinstance(v, float) and v == int(v): 
-                    v = int(v) 
-                return v 
-            # 组装对比表：行=参数，列=各款鼠标 
-            table = {} 
-            for mouse in st.session_state['compare_mice']: 
-                table[mouse] = [fmt(mouse, c) for c in spec_cols] 
-            compare_df = pd.DataFrame(table, index=[row_labels[c] for c in spec_cols]) 
-            st.dataframe(compare_df, use_container_width=True) 
-            st.caption("“—”表示该型号此项参数在数据库中暂缺") 
-        else: 
+        # --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
+        st.markdown("<h2>🔧 鼠标规格对比</h2>", unsafe_allow_html=True)
+        st.caption("搜索并逐个添加鼠标，横向对比物理规格参数，供硬件设计/竞品分析参考")
+
+        # 规格数据源 = 表二（只含有具体参数的鼠标）
+        spec_cols = ['weight', 'size', 'shape', 'wireless', 'length', 'width',
+                     'height', 'material', 'sensor', 'switch']
+
+        try:
+            df_spec_raw = load_spec_table(SPEC_EXCEL_PATH)
+        except Exception as e:
+            st.error(f"❌ 无法读取规格表(表二): {SPEC_EXCEL_PATH} — {e}")
+            df_spec_raw = pd.DataFrame(columns=['Mouse'] + spec_cols)
+
+        # 只保留表二里真实存在的规格列，避免列名对不上
+        spec_cols = [c for c in spec_cols if c in df_spec_raw.columns]
+        # 同型号可能有多行 → 按型号去重取第一条
+        df_spec = (df_spec_raw.dropna(subset=['Mouse'])
+                   .drop_duplicates('Mouse')
+                   .set_index('Mouse'))
+
+        # 初始化对比清单
+        if 'compare_mice' not in st.session_state:
+            st.session_state['compare_mice'] = []
+
+        # 候选型号 = 表二里的鼠标（保证每个选出来都有参数）
+        all_mouse_options = sorted(df_spec.index.dropna().unique().tolist())
+
+        # 清掉之前可能残留、但表二里没有的旧选择，避免 multiselect 报错
+        st.session_state['compare_mice'] = [
+            m for m in st.session_state['compare_mice'] if m in all_mouse_options
+        ]
+        selected = st.multiselect(
+            "🔍 搜索并选择鼠标型号（可输入关键词筛选，支持多选对比）",
+            options=all_mouse_options,
+            default=st.session_state['compare_mice'],
+            key='spec_multiselect',
+            placeholder="输入关键词，如 superlight / EC2 / viper"
+        )
+        st.session_state['compare_mice'] = selected
+
+        if st.session_state['compare_mice']:
+            # 中文参数名映射
+            row_labels = {
+                'weight': '重量(g)', 'size': '尺寸', 'shape': '形状',
+                'wireless': '连接方式', 'length': '长(mm)', 'width': '宽(mm)',
+                'height': '高(mm)', 'material': '材质', 'sensor': '传感器', 'switch': '微动',
+            }
+            # 值的中英转换（复用已清洗字段）
+            val_map = {
+                'symmetrical': '对称', 'ergonomic': '人体工学', 'hybrid': '混合',
+                'large': '大', 'medium': '中', 'small': '小',
+            }
+
+            def fmt(mouse, col):
+                if mouse not in df_spec.index:
+                    return '—'
+                v = df_spec.at[mouse, col]
+                if pd.isna(v):
+                    return '—'
+                v = val_map.get(v, v)  # 中文化
+                # 数字去掉多余小数
+                if isinstance(v, float) and v == int(v):
+                    v = int(v)
+                return v
+
+            # 组装对比表：行=参数，列=各款鼠标
+            table = {}
+            for mouse in st.session_state['compare_mice']:
+                table[mouse] = [fmt(mouse, c) for c in spec_cols]
+            compare_df = pd.DataFrame(table, index=[row_labels[c] for c in spec_cols])
+
+            st.dataframe(compare_df, use_container_width=True)
+            st.caption("“—”表示该型号此项参数在数据库中暂缺")
+        else:
             st.info("搜索并添加鼠标后，这里会显示参数对比表")
 
-# --- E. 变动快讯（显示具体变更内容）---
-st.markdown("<h2>🔄 最近十次变动动态</h2>",unsafe_allow_html=True)
+    # --- E. 变动快讯（显示具体变更内容）---
+    st.markdown("<h2>🔄 最近十次变动动态</h2>", unsafe_allow_html=True)
 
-# 清洗 + 转时间
-df_all['Changed'] = df_all['Changed'].astype(str).str.strip().str.upper()
+    # 清洗 + 转时间
+    df_all['Changed'] = df_all['Changed'].astype(str).str.strip().str.upper()
+    df_all['QueryTime'] = pd.to_datetime(df_all['QueryTime'], errors='coerce')
 
-# 要对比的设置字段：列名 -> 显示名
-SETTING_FIELDS={
-    'DPI':'DPI',
-    'polling_rate':'回报率',
-    'Sens':'灵敏度',
-    'eDPI':'eDPI',
-}
+    # 要对比的设置字段：列名 -> 显示名
+    SETTING_FIELDS = {
+        'DPI': 'DPI',
+        'polling_rate': '回报率',
+        'Sens': '灵敏度',
+        'eDPI': 'eDPI',
+    }
 
-# 为每位选手按时间排序，取出“上一条”的各设置值，用于差异对比
-df_all=df_all.sort_values(['Player','QueryTime'])
-for col in SETTING_FIELDS:
-    if col in df_all.columns:
-        df_all[f'prev_{col}']=df_all.groupby('Player')[col].shift(1)
+    # 为每位选手按时间排序，取出"上一条"的各设置值，用于差异对比
+    df_all = df_all.sort_values(['Player', 'QueryTime'])
+    for col in SETTING_FIELDS:
+        if col in df_all.columns:
+            df_all[f'prev_{col}'] = df_all.groupby('Player')[col].shift(1)
 
-def diff_settings(row):
-    """列出该行相对上一条记录，具体变了哪些设置"""
-    changes=[]
-    for col,label in SETTING_FIELDS.items():
-        if col not in df_all.columns:
-            continue
-        old,new=row.get(f'prev_{col}'),row.get(col)
-        if pd.notnull(old) and pd.notnull(new) and str(old)!=str(new):
-            changes.append(f'{label} {old}→{new}')
-    return changes
+    def diff_settings(row):
+        """列出该行相对上一条记录，具体变了哪些设置"""
+        changes = []
+        for col, label in SETTING_FIELDS.items():
+            if col not in df_all.columns:
+                continue
+            old, new = row.get(f'prev_{col}'), row.get(col)
+            if pd.notnull(old) and pd.notnull(new) and str(old) != str(new):
+                changes.append(f'{label} {old}→{new}')
+        return changes
 
-def describe_change(row):
-    ctype=str(row['Changed']).strip().upper()
-    mouse=row.get('Mouse','未知')
-    if ctype=='MOUSE':
-        return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span>'
-    if ctype=='BOTH':
-        detail='；'.join(diff_settings(row))
-        tail=f'（{detail}）' if detail else '（设备与设置同时变动）'
-        return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span> {tail}'
-    if ctype=='SETTINGS':
-        detail='；'.join(diff_settings(row))
-        tail=f'：{detail}' if detail else '（DPI / 回报率等）'
-        return f'选手 <b>{row["Player"]}</b> 更新了设置{tail}'
-    if ctype=='NEW':
-        return f'新增选手 <b>{row["Player"]}</b>（<span style="color:#E02020;">{mouse}</span>）'
-    return f'选手 <b>{row["Player"]}</b> 数据有更新'
+    def describe_change(row):
+        ctype = str(row['Changed']).strip().upper()
+        mouse = row.get('Mouse', '未知')
+        if ctype == 'MOUSE':
+            return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span>'
+        if ctype == 'BOTH':
+            detail = '；'.join(diff_settings(row))
+            tail = f'（{detail}）' if detail else '（设备与设置同时变动）'
+            return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span> {tail}'
+        if ctype == 'SETTINGS':
+            detail = '；'.join(diff_settings(row))
+            tail = f'：{detail}' if detail else '（DPI / 回报率等）'
+            return f'选手 <b>{row["Player"]}</b> 更新了设置{tail}'
+        if ctype == 'NEW':
+            return f'新增选手 <b>{row["Player"]}</b>（<span style="color:#E02020;">{mouse}</span>）'
+        return f'选手 <b>{row["Player"]}</b> 数据有更新'
 
-# 排序取最近10条
-CHANGE_TYPES=['MOUSE','BOTH','SETTINGS','NEW']
-changed_list=(
-    df_all[df_all['Changed'].isin(CHANGE_TYPES)]
-    .sort_values('QueryTime',ascending=False)
-    .head(10)
-)
+    # 排序取最近 10 条（差异列已算好，这里再按时间倒序）
+    CHANGE_TYPES = ['MOUSE', 'BOTH', 'SETTINGS', 'NEW']
+    changed_list = (
+        df_all[df_all['Changed'].isin(CHANGE_TYPES)]
+        .sort_values('QueryTime', ascending=False)
+        .head(10)
+    )
 
-if not changed_list.empty:
-    for _,row in changed_list.iterrows():
-        time_str=row['QueryTime'].strftime('%Y-%m-%d %H:%M') if pd.notnull(row['QueryTime']) else "N/A"
-        st.markdown(f"""
-            <div class="change-log">
-                <span style="color:#666; font-size:12px;">{time_str}</span><br>
-                {describe_change(row)}
-            </div>
-        """,unsafe_allow_html=True)
-else:
-    st.info("目前监测中... 暂无近期设备变更记录。")
+    if not changed_list.empty:
+        for _, row in changed_list.iterrows():
+            time_str = row['QueryTime'].strftime('%Y-%m-%d %H:%M') if pd.notnull(row['QueryTime']) else "N/A"
+            st.markdown(f"""
+                <div class="change-log">
+                    <span style="color:#666; font-size:12px;">{time_str}</span><br>
+                    {describe_change(row)}
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("目前监测中... 暂无近期设备变更记录。")
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
