@@ -1576,8 +1576,30 @@ def main():
         row_labels = {
             'brand': '品牌',
             'weight': '重量(g)',
-            'size':
-
+            'size': '尺寸',
+            'shape': '形状',
+            'length': '长(mm)',
+            'width': '宽(mm)',
+            'height': '高(mm)',
+            'hump_placement': '隆起位置',
+            'front_flare': '前部外扩',
+            'side_curvature': '侧面曲度',
+            'thumb_rest': '拇指托',
+            'ring_finger_rest': '无名指托',
+            'wireless': '连接方式',
+            'dpi': 'DPI',
+            'polling_rate': '回报率(Hz)',
+            'side_buttons': '侧键数',
+            'middle_buttons': '中键数',
+            'scroll': '滚轮',
+            'material': '材质',
+            'sensor': '传感器',
+            'sensor_type': '传感器类型',
+            'sensor_dpi': '传感器DPI',
+            'sensor_tracking_speed': '追踪速度(IPS)',
+            'acceleration': '加速度(G)',
+            'switch': '微动',
+        }
     # --- E. 变动快讯（显示具体变更内容）---
     st.markdown("<h2>🔄 最近十次变动动态</h2>", unsafe_allow_html=True)
 
