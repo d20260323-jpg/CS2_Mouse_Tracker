@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image
 
-# python -m streamlit run "C:\Users\donny.d.huang\PycharmProjects\PythonProject\AI\cs2_mouse_site\Tracking website.py"
+# python -m streamlit run "C:\Users\donny.d.huang\Desktop\Tracking website.py"
 # ==========================================
 # 1. 页面配置与高清电竞风 CSS
 # ==========================================
@@ -21,21 +21,22 @@ st.set_page_config(
 import ast
 
 
+def parse_brand(raw):
+    """brand: '["Logitech"]' -> 'Logitech'"""
+    if pd.isna(raw):
+        return raw
+    try:
+        val = ast.literal_eval(str(raw))
+        if isinstance(val, list) and val:
+            return str(val[0]).strip()
+    except (ValueError, SyntaxError):
+        pass
+    return str(raw).strip()
+
+
 def clean_physical_fields(df):
     """读取后统一清洗：直接覆盖原字段，全文使用干净数据。"""
     df = df.copy()
-
-    # brand: '["Logitech"]' -> 'logitech'
-    def parse_brand(raw):
-        if pd.isna(raw):
-            return raw
-        try:
-            val = ast.literal_eval(str(raw))
-            if isinstance(val, list) and val:
-                return str(val[0]).strip()
-        except (ValueError, SyntaxError):
-            pass
-        return str(raw).strip()
 
     df['brand'] = df['brand'].apply(parse_brand)
     df['brand'] = df['brand'].astype(str).str.strip().str.lower().replace('nan', pd.NA)
@@ -82,18 +83,17 @@ def clean_numeric_fields(df):
     df.loc[bad, [c for c in NUM_COLS if c in df.columns]] = float("nan")
     return df
 
+
 # 图片路径
-EXCEL_PATH = "FPS_mouse_tracking.xlsx"  # EXCEL_PATH = "https://raw.githubusercontent.com/d20260323-jpg/CS2_Mouse_Tracker/main/cs2_mouse_tracking.xlsx"
-ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
-HERO_MOUSE_PATH = "assets/hero_mouse.png"
+EXCEL_PATH = "FPS_mouse_tracking.xlsx" # r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_tracking.xlsx"
+ZOWIE_LOGO_PATH = "assets/zowie_logo.png" # r"C:\Users\donny.d.huang\Desktop\zowie_logo.png"
 
 # ── 表二：鼠标规格主表（每行一款鼠标 + 完整参数）──
-SPEC_EXCEL_PATH = "mouseCatalog.xlsx"  # ← 改成你表二的真实文件名！
+SPEC_EXCEL_PATH = "mouseCatalog.xlsx" #r"C:\Users\donny.d.huang\Desktop\mouseCatalog.xlsx"  # ← 改成你表二的真实文件名！
 
 
 @st.cache_data(ttl=300)
 def load_spec_table(path):
-    """读取表二，只做规格对比需要的最小清洗（缺列也不报错）"""
     df = pd.read_excel(path)
     if 'wireless' in df.columns:
         df['wireless'] = df['wireless'].map(
@@ -102,6 +102,9 @@ def load_spec_table(path):
     for f in ['size', 'shape']:
         if f in df.columns:
             df[f] = df[f].astype(str).str.strip().str.lower().replace('nan', pd.NA)
+    if 'brand' in df.columns:
+        df['brand'] = df['brand'].apply(parse_brand)
+        df['brand'] = df['brand'].astype(str).str.strip().replace('nan', pd.NA)
     return df
 
 
@@ -233,64 +236,64 @@ STAR_PLAYERS = {
     'dupreeh',  # 五冠王，Major 冠军最多
     'gla1ve',  # Astralis 指挥
     'Magisk',  # Astralis
-    
-# —— VALORANT: 2021 Champions（Acend）——
+
+    # —— VALORANT: 2021 Champions（Acend）——
     'Cerq',
 
     # —— VALORANT: 2022 Champions（LOUD，巴西首冠）——
-    'aspas',      # 2022 Champions MVP
+    'aspas',  # 2022 Champions MVP
     'Sacy',
     'Less',
     'saadhak',
     'pANcada',
 
     # —— VALORANT: 2023 Champions（Evil Geniuses）——
-    'Demon1',     # 2023 Champions MVP
+    'Demon1',  # 2023 Champions MVP
     'jawgemo',
     'Boostio',
     'C0M',
-    'Ethan',      # 2023 EG冠军成员，2025随NRG再夺冠，两届世界冠军唯一选手
+    'Ethan',  # 2023 EG冠军成员，2025随NRG再夺冠，两届世界冠军唯一选手
 
     # —— VALORANT: 2024 Champions（EDward Gaming，中国首冠）——
-    'ZmjjKK',     # 2024 Champions MVP，单场111杀纪录
+    'ZmjjKK',  # 2024 Champions MVP，单场111杀纪录
     'S1mon',
     'Smoggy',
     'nobody',
     'CHICHOO',
 
     # —— VALORANT: 2025 Champions（NRG）——
-    'brawk',      # 2025 Champions MVP，首次参赛即封神
+    'brawk',  # 2025 Champions MVP，首次参赛即封神
     'mada',
     's0m',
     'FiNESSE',
 
     # —— VALORANT: Fnatic（长期豪门，2025 Champions亚军）——
-    'Derke',      # 常年顶级duelist
-    'Boaster',    # 传奇队长，人气极高
+    'Derke',  # 常年顶级duelist
+    'Boaster',  # 传奇队长，人气极高
     'Alfajer',
     'Chronicle',
     'Leo',
-    'kaajak',     # 2025 EMEA赛区年度最佳选手
+    'kaajak',  # 2025 EMEA赛区年度最佳选手
 
     # —— VALORANT: 2025赛季奖项 ——
-    'f0rsakeN',   # 2025年度最佳选手，兼Masters Toronto 2025 MVP，全能flex位
+    'f0rsakeN',  # 2025年度最佳选手，兼Masters Toronto 2025 MVP，全能flex位
 
     # —— VALORANT: 2026 Masters Santiago 冠军（Nongshim RedForce）——
-    'Dambi',      # Masters Santiago 2026 MVP，一年内从二级联赛升到MVP
+    'Dambi',  # Masters Santiago 2026 MVP，一年内从二级联赛升到MVP
 
     # —— VALORANT: 2026 Masters London 冠军（Leviatán，首冠）——
-    'Neon',       # 注意：这是选手ID(Bruno Rodríguez)，正好与游戏角色同名；Masters London 2026 MVP
+    'Neon',  # 注意：这是选手ID(Bruno Rodríguez)，正好与游戏角色同名；Masters London 2026 MVP
 
     # —— VALORANT: Esports World Cup 冠军/MVP ——
-    'Wo0t',       # 2025 EWC冠军(Team Heretics) MVP
+    'Wo0t',  # 2025 EWC冠军(Team Heretics) MVP
     'Cryocells',  # 2026 EWC冠军(100 Thieves) MVP
-    'Asuna',      # 100T队长，2026 EWC夺得队史首个国际奖杯
+    'Asuna',  # 100T队长，2026 EWC夺得队史首个国际奖杯
 
     # —— VALORANT: 常年人气/传奇选手 ——
-    'TenZ',       # Sentinels，人气与影响力顶级
-    'ScreaM',     # 欧洲传奇瞄准手，老将
-    'yay',        # Sentinels，2023 LOCK//IN MVP
-    
+    'TenZ',  # Sentinels，人气与影响力顶级
+    'ScreaM',  # 欧洲传奇瞄准手，老将
+    'yay',  # Sentinels，2023 LOCK//IN MVP
+
 }
 
 
@@ -484,6 +487,7 @@ def load_data():
         st.error(f"数据解析失败: {e}")
         return None, None
 
+
 def get_month_options(series):
     """生成月份选项：完整月份用月末日期；如果最新数据还没到月末，
     把"数据实际最新一天"也加进去，这样才能看到本月截至今天的快照，
@@ -503,6 +507,7 @@ def format_month_option(d):
     if d.is_month_end:
         return d.strftime('%Y-%m')
     return f"{d.strftime('%Y-%m')}（截至{d.strftime('%m-%d')}）"
+
 
 # ==========================================
 # 3. 网页主结构
@@ -1528,82 +1533,109 @@ def main():
         st.plotly_chart(fig_ct, use_container_width=True, config={'displayModeBar': False})
         st.caption("⚠️ 空白格有两种含义：真空白(市场机会) 或 不合理组合(如超重+超小)，需结合设计经验判断")
 
-        # --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
-        st.markdown("<h2>🔧 鼠标规格对比</h2>", unsafe_allow_html=True)
-        st.caption("搜索并逐个添加鼠标，横向对比物理规格参数，供硬件设计/竞品分析参考")
+    # --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
+    st.markdown("<h2>🔧 鼠标规格对比</h2>", unsafe_allow_html=True)
+    st.caption("搜索并逐个添加鼠标，横向对比物理规格参数，供硬件设计/竞品分析参考")
 
-        # 规格数据源 = 表二（只含有具体参数的鼠标）
-        spec_cols = ['weight', 'size', 'shape', 'wireless', 'length', 'width',
-                     'height', 'material', 'sensor', 'switch']
+    spec_cols = [
+        'brand', 'weight', 'size', 'shape', 'length', 'width', 'height',
+        'hump_placement', 'front_flare', 'side_curvature',
+        'thumb_rest', 'ring_finger_rest',
+        'wireless', 'dpi', 'polling_rate',
+        'side_buttons', 'middle_buttons', 'scroll',
+        'material', 'sensor', 'sensor_type', 'sensor_dpi',
+        'sensor_tracking_speed', 'acceleration', 'switch',
+    ]
 
-        try:
-            df_spec_raw = load_spec_table(SPEC_EXCEL_PATH)
-        except Exception as e:
-            st.error(f"❌ 无法读取规格表(表二): {SPEC_EXCEL_PATH} — {e}")
-            df_spec_raw = pd.DataFrame(columns=['Mouse'] + spec_cols)
+    try:
+        df_spec_raw = load_spec_table(SPEC_EXCEL_PATH)
+    except Exception as e:
+        st.error(f"❌ 无法读取规格表(表二): {SPEC_EXCEL_PATH} — {e}")
+        df_spec_raw = pd.DataFrame(columns=['Mouse'] + spec_cols)
 
-        # 只保留表二里真实存在的规格列，避免列名对不上
-        spec_cols = [c for c in spec_cols if c in df_spec_raw.columns]
-        # 同型号可能有多行 → 按型号去重取第一条
-        df_spec = (df_spec_raw.dropna(subset=['Mouse'])
-                   .drop_duplicates('Mouse')
-                   .set_index('Mouse'))
+    spec_cols = [c for c in spec_cols if c in df_spec_raw.columns]
 
-        # 初始化对比清单
-        if 'compare_mice' not in st.session_state:
-            st.session_state['compare_mice'] = []
+    df_spec = (df_spec_raw.dropna(subset=['Mouse'])
+               .drop_duplicates('Mouse')
+               .set_index('Mouse'))
 
-        # 候选型号 = 表二里的鼠标（保证每个选出来都有参数）
-        all_mouse_options = sorted(df_spec.index.dropna().unique().tolist())
+    if 'compare_mice' not in st.session_state:
+        st.session_state['compare_mice'] = []
 
-        # 清掉之前可能残留、但表二里没有的旧选择，避免 multiselect 报错
-        st.session_state['compare_mice'] = [
-            m for m in st.session_state['compare_mice'] if m in all_mouse_options
-        ]
-        selected = st.multiselect(
-            "🔍 搜索并选择鼠标型号（可输入关键词筛选，支持多选对比）",
-            options=all_mouse_options,
-            default=st.session_state['compare_mice'],
-            key='spec_multiselect',
-            placeholder="输入关键词，如 superlight / EC2 / viper"
-        )
-        st.session_state['compare_mice'] = selected
+    all_mouse_options = sorted(df_spec.index.dropna().unique().tolist())
 
-        if st.session_state['compare_mice']:
-            # 中文参数名映射
-            row_labels = {
-                'weight': '重量(g)', 'size': '尺寸', 'shape': '形状',
-                'wireless': '连接方式', 'length': '长(mm)', 'width': '宽(mm)',
-                'height': '高(mm)', 'material': '材质', 'sensor': '传感器', 'switch': '微动',
-            }
-            # 值的中英转换（复用已清洗字段）
-            val_map = {
-                'symmetrical': '对称', 'ergonomic': '人体工学', 'hybrid': '混合',
-                'large': '大', 'medium': '中', 'small': '小',
-            }
+    st.session_state['compare_mice'] = [
+        m for m in st.session_state['compare_mice'] if m in all_mouse_options
+    ]
 
-            def fmt(mouse, col):
-                if mouse not in df_spec.index:
-                    return '—'
-                v = df_spec.at[mouse, col]
-                if pd.isna(v):
-                    return '—'
-                v = val_map.get(v, v)  # 中文化
-                # 数字去掉多余小数
-                if isinstance(v, float) and v == int(v):
-                    v = int(v)
-                return v
+    selected = st.multiselect(
+        "🔍 搜索并选择鼠标型号（可输入关键词筛选，支持多选对比）",
+        options=all_mouse_options,
+        default=st.session_state['compare_mice'],
+        key='spec_multiselect',
+        placeholder="输入关键词，如 superlight / EC2 / viper"
+    )
+    st.session_state['compare_mice'] = selected
 
-            # 组装对比表：行=参数，列=各款鼠标
-            table = {}
-            for mouse in st.session_state['compare_mice']:
-                table[mouse] = [fmt(mouse, c) for c in spec_cols]
-            compare_df = pd.DataFrame(table, index=[row_labels[c] for c in spec_cols])
+    if st.session_state['compare_mice']:
+        row_labels = {
+            'brand': '品牌',
+            'weight': '重量(g)',
+            'size': '尺寸',
+            'shape': '形状',
+            'length': '长(mm)',
+            'width': '宽(mm)',
+            'height': '高(mm)',
+            'hump_placement': '隆起位置',
+            'front_flare': '前部外扩',
+            'side_curvature': '侧面曲度',
+            'thumb_rest': '拇指托',
+            'ring_finger_rest': '无名指托',
+            'wireless': '连接方式',
+            'dpi': 'DPI',
+            'polling_rate': '回报率(Hz)',
+            'side_buttons': '侧键数',
+            'middle_buttons': '中键数',
+            'scroll': '滚轮',
+            'material': '材质',
+            'sensor': '传感器',
+            'sensor_type': '传感器类型',
+            'sensor_dpi': '传感器DPI',
+            'sensor_tracking_speed': '追踪速度(IPS)',
+            'acceleration': '加速度(G)',
+            'switch': '微动',
+        }
+        val_map = {
+            'symmetrical': '对称', 'ergonomic': '人体工学', 'hybrid': '混合',
+            'large': '大', 'medium': '中', 'small': '小',
+            'front': '前', 'center': '中', 'middle': '中', 'back': '后',
+            'high': '高', 'low': '低',
+            'yes': '有', 'no': '无', True: '有', False: '无',
+            'wired': '有线', 'wireless': '无线', 'both': '有线+无线',
+        }
 
-            st.dataframe(compare_df, use_container_width=True)
-            st.caption("“—”表示该型号此项参数在数据库中暂缺")
-        else:
-            st.info("搜索并添加鼠标后，这里会显示参数对比表")
+        def fmt(mouse, col):
+            if mouse not in df_spec.index:
+                return '—'
+            v = df_spec.at[mouse, col]
+            if pd.isna(v):
+                return '—'
+            v = val_map.get(v, v)
+            if isinstance(v, float) and v == int(v):
+                v = int(v)
+            return v
+
+        table = {}
+        for mouse in st.session_state['compare_mice']:
+            table[mouse] = [fmt(mouse, c) for c in spec_cols]
+
+        compare_df = pd.DataFrame(table, index=[row_labels[c] for c in spec_cols])
+        st.dataframe(compare_df, use_container_width=True)
+        st.caption("“—”表示该型号此项参数在数据库中暂缺")
+    else:
+        st.info("搜索并添加鼠标后，这里会显示参数对比表")
+
+
 
     # --- E. 变动快讯（显示具体变更内容）---
     st.markdown("<h2>🔄 最近十次变动动态</h2>", unsafe_allow_html=True)
