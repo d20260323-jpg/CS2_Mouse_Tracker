@@ -1599,7 +1599,7 @@ if st.session_state['compare_mice']:
     }
     sensor_type_map = {'optical':'光学','laser':'激光'}
 
-    def fmt(mouse,col):
+def fmt(mouse,col):
         if mouse not in df_spec.index or col not in df_spec.columns:
             return '—'
         v = df_spec.at[mouse,col]
@@ -1672,7 +1672,7 @@ SETTING_FIELDS = {
         if col in df_all.columns:
             df_all[f'prev_{col}'] = df_all.groupby('Player')[col].shift(1)
 
-    def diff_settings(row):
+def diff_settings(row):
         """列出该行相对上一条记录，具体变了哪些设置"""
         changes = []
         for col, label in SETTING_FIELDS.items():
@@ -1683,7 +1683,7 @@ SETTING_FIELDS = {
                 changes.append(f'{label} {old}→{new}')
         return changes
 
-    def describe_change(row):
+def describe_change(row):
         ctype = str(row['Changed']).strip().upper()
         mouse = row.get('Mouse', '未知')
         if ctype == 'MOUSE':
