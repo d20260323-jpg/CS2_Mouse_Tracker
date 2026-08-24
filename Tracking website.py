@@ -1529,81 +1529,125 @@ def main():
         st.caption("⚠️ 空白格有两种含义：真空白(市场机会) 或 不合理组合(如超重+超小)，需结合设计经验判断")
 
         # --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
-        st.markdown("<h2>🔧 鼠标规格对比</h2>", unsafe_allow_html=True)
-        st.caption("搜索并逐个添加鼠标，横向对比物理规格参数，供硬件设计/竞品分析参考")
+       # 规格数据源 = 表二
+spec_cols = ['brand','size','length','width','height','shape','hump_placement','front_flare','side_curvature','thumb_rest','ring_finger_rest','wireless','weight','dpi','polling_rate','side_buttons','middle_buttons','material','sensor','sensor_type','sensor_dpi','sensor_tracking_speed','acceleration','switch','scroll']
 
-        # 规格数据源 = 表二（只含有具体参数的鼠标）
-        spec_cols = ['weight', 'size', 'shape', 'wireless', 'length', 'width',
-                     'height', 'material', 'sensor', 'switch']
+try:
+    df_spec_raw = load_spec_table(SPEC_EXCEL_PATH)
+except Exception as e:
+    st.error(f"❌ 无法读取规格表(表二): {SPEC_EXCEL_PATH} — {e}")
+    df_spec_raw = pd.DataFrame(columns=['Mouse'] + spec_cols)
 
-        try:
-            df_spec_raw = load_spec_table(SPEC_EXCEL_PATH)
-        except Exception as e:
-            st.error(f"❌ 无法读取规格表(表二): {SPEC_EXCEL_PATH} — {e}")
-            df_spec_raw = pd.DataFrame(columns=['Mouse'] + spec_cols)
+spec_cols = [c for c in spec_cols if c in df_spec_raw.columns]
+df_spec = df_spec_raw.dropna(subset=['Mouse']).drop_duplicates('Mouse').set_index('Mouse')
 
-        # 只保留表二里真实存在的规格列，避免列名对不上
-        spec_cols = [c for c in spec_cols if c in df_spec_raw.columns]
-        # 同型号可能有多行 → 按型号去重取第一条
-        df_spec = (df_spec_raw.dropna(subset=['Mouse'])
-                   .drop_duplicates('Mouse')
-                   .set_index('Mouse'))
+if 'compare_mice' not in st.session_state:
+    st.session_state['compare_mice'] = []
 
-        # 初始化对比清单
-        if 'compare_mice' not in st.session_state:
-            st.session_state['compare_mice'] = []
+all_mouse_options = sorted(df_spec.index.dropna().unique().tolist())
+st.session_state['compare_mice'] = [m for m in st.session_state['compare_mice'] if m in all_mouse_options]
 
-        # 候选型号 = 表二里的鼠标（保证每个选出来都有参数）
-        all_mouse_options = sorted(df_spec.index.dropna().unique().tolist())
+selected = st.multiselect(
+    "🔍 搜索并选择鼠标型号（可输入关键词筛选，支持多选对比）",
+    options=all_mouse_options,
+    default=st.session_state['compare_mice'],
+    key='spec_multiselect',
+    placeholder="输入关键词，如 superlight / EC2 / viper"
+)
+st.session_state['compare_mice'] = selected
 
-        # 清掉之前可能残留、但表二里没有的旧选择，避免 multiselect 报错
-        st.session_state['compare_mice'] = [
-            m for m in st.session_state['compare_mice'] if m in all_mouse_options
-        ]
-        selected = st.multiselect(
-            "🔍 搜索并选择鼠标型号（可输入关键词筛选，支持多选对比）",
-            options=all_mouse_options,
-            default=st.session_state['compare_mice'],
-            key='spec_multiselect',
-            placeholder="输入关键词，如 superlight / EC2 / viper"
-        )
-        st.session_state['compare_mice'] = selected
+if st.session_state['compare_mice']:
+    row_labels = {
+        'brand':'品牌','size':'尺寸','length':'长度(mm)','width':'宽度(mm)','height':'高度(mm)',
+        'shape':'形状','hump_placement':'驼峰位置','front_flare':'前端外扩','side_curvature':'侧面曲率',
+        'thumb_rest':'拇指托','ring_finger_rest':'无名指托','wireless':'连接方式','weight':'重量(g)',
+        'dpi':'DPI','polling_rate':'回报率(Hz)','side_buttons':'侧键数量','middle_buttons':'中键数量',
+        'material':'材质','sensor':'传感器','sensor_type':'传感器类型','sensor_dpi':'传感器DPI',
+        'sensor_tracking_speed':'传感器追踪速度','acceleration':'最大加速度','switch':'微动','scroll':'滚轮编码器'
+    }
 
-        if st.session_state['compare_mice']:
-            # 中文参数名映射
-            row_labels = {
-                'weight': '重量(g)', 'size': '尺寸', 'shape': '形状',
-                'wireless': '连接方式', 'length': '长(mm)', 'width': '宽(mm)',
-                'height': '高(mm)', 'material': '材质', 'sensor': '传感器', 'switch': '微动',
-            }
-            # 值的中英转换（复用已清洗字段）
-            val_map = {
-                'symmetrical': '对称', 'ergonomic': '人体工学', 'hybrid': '混合',
-                'large': '大', 'medium': '中', 'small': '小',
-            }
+    size_map = {'small':'小','medium':'中','large':'大'}
+    shape_map = {'symmetrical':'对称','ergonomic':'人体工学','hybrid':'混合'}
+    hump_map = {
+        'center':'中部',
+        'back - minimal':'后部 - 低',
+        'back - moderate':'后部 - 中',
+        'back - aggressive':'后部 - 高'
+    }
+    front_flare_map = {
+        'flat':'平直',
+        'outward - slight':'外扩 - 轻微',
+        'outward - moderate':'外扩 - 中等',
+        'outward - aggressive':'外扩 - 明显',
+        'inward - slight':'内收 - 轻微',
+        'inward - moderate':'内收 - 中等',
+        'inward - aggressive':'内收 - 明显'
+    }
+    curvature_map = {
+        'flat':'平直',
+        'inward':'内收',
+        'inward - aggressive':'明显内收',
+        'outward - aggressive':'明显外凸'
+    }
+    material_map = {
+        'plastic':'塑料',
+        'carbon-fiber-composite':'碳纤维复合材料',
+        'carbon fiber composite':'碳纤维复合材料',
+        'forged-carbon-fiber':'锻造碳纤维',
+        'metal':'金属',
+        'microcrystalline composite':'微晶复合材料'
+    }
+    sensor_type_map = {'optical':'光学','laser':'激光'}
 
-            def fmt(mouse, col):
-                if mouse not in df_spec.index:
-                    return '—'
-                v = df_spec.at[mouse, col]
-                if pd.isna(v):
-                    return '—'
-                v = val_map.get(v, v)  # 中文化
-                # 数字去掉多余小数
-                if isinstance(v, float) and v == int(v):
-                    v = int(v)
-                return v
+    def fmt(mouse,col):
+        if mouse not in df_spec.index or col not in df_spec.columns:
+            return '—'
+        v = df_spec.at[mouse,col]
+        if pd.isna(v):
+            return '—'
 
-            # 组装对比表：行=参数，列=各款鼠标
-            table = {}
-            for mouse in st.session_state['compare_mice']:
-                table[mouse] = [fmt(mouse, c) for c in spec_cols]
-            compare_df = pd.DataFrame(table, index=[row_labels[c] for c in spec_cols])
+        if col in ['thumb_rest','ring_finger_rest']:
+            return '有' if float(v) == 1 else '无'
 
-            st.dataframe(compare_df, use_container_width=True)
-            st.caption("“—”表示该型号此项参数在数据库中暂缺")
-        else:
-            st.info("搜索并添加鼠标后，这里会显示参数对比表")
+        if col == 'wireless':
+            return '无线' if float(v) == 1 else '有线'
+
+        if col == 'brand' and isinstance(v,str):
+            v = v.strip()
+            if v.startswith('[') and v.endswith(']'):
+                v = v.replace('[','').replace(']','').replace('"','').replace("'","").replace(', ',' / ')
+            return v
+
+        if isinstance(v,(int,float)):
+            return int(v) if float(v).is_integer() else round(float(v),2)
+
+        if isinstance(v,str):
+            v = v.strip()
+            lv = v.lower()
+            if col == 'size':
+                return size_map.get(lv,v)
+            if col == 'shape':
+                return shape_map.get(lv,v)
+            if col == 'hump_placement':
+                return hump_map.get(lv,v)
+            if col == 'front_flare':
+                return front_flare_map.get(lv,v)
+            if col == 'side_curvature':
+                return curvature_map.get(lv,v)
+            if col == 'material':
+                return material_map.get(lv,v)
+            if col == 'sensor_type':
+                return sensor_type_map.get(lv,v)
+            return v
+
+        return v
+
+    table = {mouse:[fmt(mouse,c) for c in spec_cols] for mouse in st.session_state['compare_mice']}
+    compare_df = pd.DataFrame(table,index=[row_labels.get(c,c) for c in spec_cols])
+    st.dataframe(compare_df,use_container_width=True)
+    st.caption("“—”表示该型号此项参数在数据库中暂缺")
+else:
+    st.info("搜索并添加鼠标后，这里会显示参数对比表")
 
     # --- E. 变动快讯（显示具体变更内容）---
     st.markdown("<h2>🔄 最近十次变动动态</h2>", unsafe_allow_html=True)
