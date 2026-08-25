@@ -692,9 +692,9 @@ def main():
                             legend=dict(font=dict(size=18, color="#FFFFFF")))
         st.plotly_chart(fig_p, use_container_width=True, config={'displayModeBar': False})
     # --- D2. 品牌趋势折线图 ---
-    st.markdown("<h2>📈 品牌使用趋势</h2>", unsafe_allow_html=True)
+st.markdown("<h2>📈 品牌使用趋势</h2>", unsafe_allow_html=True)
 
-    # 游戏切换（放在图上方）
+    # 游戏切换（放在图上方，两个视图共用）
     game_sel_t = st.radio(
         "游戏", ["全部", "CS2", "Valorant"],
         horizontal=True, key="trend_game_radio",
@@ -715,57 +715,145 @@ def main():
 
     records = []
     active_days = 350  # 只算最近 350 天还有记录的选手（和飞书口径一致）
+    monthly_snapshots = {}  # 每月快照（选手+品牌），流失率计算要复用
     for m in months:
         # 截止到这个月底，每个选手最后一次的记录 = 他此刻在用的
         snap = df_trend[df_trend['QueryTime'] <= m].drop_duplicates('Player', keep='last')
         # 活跃过滤：只留最后一次记录在近 active_days 天内的选手
         snap = snap[snap['QueryTime'] >= m - pd.Timedelta(days=active_days)]
+        monthly_snapshots[m] = snap[['Player', 'Brand']].copy()
         # 数每个品牌多少人
         brand_counts = snap['Brand'].value_counts()
         for brand, cnt in brand_counts.items():
             records.append({'Date': m, 'Brand': brand, 'Count': cnt})
 
     brand_trend = pd.DataFrame(records)
+    top_brands = df_trend['Brand'].value_counts().head(5).index.tolist()
 
-    # 没数据时兜底，避免下面 value_counts / 画图报错
-    if brand_trend.empty:
-        st.info(f"无 {game_sel_t} 的品牌趋势数据")
+    # —— 视图切换按钮：使用人数 / 流失率 ——
+    if 'brand_trend_view' not in st.session_state:
+        st.session_state['brand_trend_view'] = 'count'
+
+    bt_c1, bt_c2, _ = st.columns([1, 1, 4])
+    with bt_c1:
+        if st.button(
+                "📈 使用人数",
+                key='btn_view_count',
+                use_container_width=True,
+                type="primary" if st.session_state['brand_trend_view'] == 'count' else "secondary"
+        ):
+            st.session_state['brand_trend_view'] = 'count'
+            st.rerun()
+    with bt_c2:
+        if st.button(
+                "📉 流失率",
+                key='btn_view_churn',
+                use_container_width=True,
+                type="primary" if st.session_state['brand_trend_view'] == 'churn' else "secondary"
+        ):
+            st.session_state['brand_trend_view'] = 'churn'
+            st.rerun()
+
+    # ===== 视图一：使用人数 =====
+    if st.session_state['brand_trend_view'] == 'count':
+        if brand_trend.empty:
+            st.info(f"无 {game_sel_t} 的品牌趋势数据")
+        else:
+            brand_trend_top = brand_trend[brand_trend['Brand'].isin(top_brands)]
+
+            fig_line = px.line(
+                brand_trend_top,
+                x='Date',
+                y='Count',
+                color='Brand',
+                markers=True,
+                color_discrete_map=BRAND_COLORS
+            )
+            fig_line.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font_color="#FFFFFF",
+                height=350,
+                margin=dict(l=0, r=0, t=30, b=0),
+                xaxis=dict(gridcolor='#222', tickfont=dict(color='#FFFFFF')),
+                yaxis=dict(gridcolor='#222', title=None,
+                           tickfont=dict(color='#FFFFFF')),
+                legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#FFFFFF'))
+            )
+            fig_line.add_annotation(
+                text="使用人数",
+                xref="paper", yref="paper",
+                x=0, y=1.05,
+                showarrow=False,
+                font=dict(color="#FFFFFF", size=13),
+                xanchor="left"
+            )
+            st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
+        st.caption("📌 统计口径:仅统计近350天内仍有更新记录(即近期仍活跃)的选手,长期未更新/退役选手不计入")
+
+    # ===== 视图二：流失率 =====
     else:
-        # 只展示 Top 5 品牌
-        top_brands = df_trend['Brand'].value_counts().head(5).index.tolist()
-        brand_trend = brand_trend[brand_trend['Brand'].isin(top_brands)]
+        st.caption("流失率 = （上月仍在用该品牌的选手数 − 本月仍在用该品牌的选手数）÷ 上月该品牌选手数。"
+                   "含转投其他品牌、或本月已不活跃两种情况，与使用人数视图口径一致")
 
-        fig_line = px.line(
-            brand_trend,
-            x='Date',
-            y='Count',
-            color='Brand',
-            markers=True,
-            color_discrete_map=BRAND_COLORS
-        )
-        fig_line.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font_color="#FFFFFF",
-            height=350,
-            margin=dict(l=0, r=0, t=30, b=0),
-            xaxis=dict(gridcolor='#222', tickfont=dict(color='#FFFFFF')),
-            yaxis=dict(gridcolor='#222', title=None,
-                       tickfont=dict(color='#FFFFFF')),
-            legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#FFFFFF'))
-        )
+        sorted_months = sorted(monthly_snapshots.keys())
 
-        fig_line.add_annotation(
-            text="使用人数",
-            xref="paper", yref="paper",
-            x=0, y=1.05,  # 左上角，Y轴上方
-            showarrow=False,
-            font=dict(color="#FFFFFF", size=13),
-            xanchor="left"
-        )
+        if len(sorted_months) < 2 or not top_brands:
+            st.info("数据月份不足，暂无法计算流失率")
+        else:
+            churn_records = []
+            for i in range(1, len(sorted_months)):
+                prev_m, cur_m = sorted_months[i - 1], sorted_months[i]
+                prev_snap = monthly_snapshots[prev_m]
+                cur_snap = monthly_snapshots[cur_m]
 
-        st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
-    st.caption("📌 统计口径:仅统计近350天内仍有更新记录(即近期仍活跃)的选手,长期未更新/退役选手不计入")
+                for brand in top_brands:
+                    prev_players = set(prev_snap.loc[prev_snap['Brand'] == brand, 'Player'])
+                    if not prev_players:
+                        continue  # 上月该品牌本来就没人在用，流失率无意义，跳过
+                    cur_players = set(cur_snap.loc[cur_snap['Brand'] == brand, 'Player'])
+                    churned = prev_players - cur_players
+                    churn_rate = len(churned) / len(prev_players) * 100
+                    churn_records.append({
+                        'Date': cur_m,
+                        'Brand': brand,
+                        'ChurnRate': round(churn_rate, 1)
+                    })
+
+            churn_df = pd.DataFrame(churn_records)
+
+            if churn_df.empty:
+                st.info("暂无足够数据计算流失率")
+            else:
+                fig_churn = px.line(
+                    churn_df,
+                    x='Date',
+                    y='ChurnRate',
+                    color='Brand',
+                    markers=True,
+                    color_discrete_map=BRAND_COLORS
+                )
+                fig_churn.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font_color="#FFFFFF",
+                    height=350,
+                    margin=dict(l=0, r=0, t=30, b=0),
+                    xaxis=dict(gridcolor='#222', tickfont=dict(color='#FFFFFF')),
+                    yaxis=dict(gridcolor='#222', title=None, ticksuffix='%',
+                               tickfont=dict(color='#FFFFFF'), range=[0, 100]),
+                    legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#FFFFFF'))
+                )
+                fig_churn.add_annotation(
+                    text="流失率(%)",
+                    xref="paper", yref="paper",
+                    x=0, y=1.05,
+                    showarrow=False,
+                    font=dict(color="#FFFFFF", size=13),
+                    xanchor="left"
+                )
+                st.plotly_chart(fig_churn, use_container_width=True, config={'displayModeBar': False})
+                st.caption("⚠️ 单月人数基数较小时，流失率容易大起大落，解读时建议结合使用人数视图一起看")
 
     # --- D3. 鼠标型号趋势对比（多组：组内合并 + 组间对比）---
     import re
@@ -1638,13 +1726,11 @@ def main():
 
 
     # --- E. 变动快讯（显示具体变更内容）---
-    st.markdown("<h2>🔄 最近十次变动动态</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>🔄 最近变动动态</h2>", unsafe_allow_html=True)
 
-    # 清洗 + 转时间
     df_all['Changed'] = df_all['Changed'].astype(str).str.strip().str.upper()
     df_all['QueryTime'] = pd.to_datetime(df_all['QueryTime'], errors='coerce')
 
-    # 要对比的设置字段：列名 -> 显示名
     SETTING_FIELDS = {
         'DPI': 'DPI',
         'polling_rate': '回报率',
@@ -1652,59 +1738,173 @@ def main():
         'eDPI': 'eDPI',
     }
 
-    # 为每位选手按时间排序，取出"上一条"的各设置值，用于差异对比
     df_all = df_all.sort_values(['Player', 'QueryTime'])
     for col in SETTING_FIELDS:
         if col in df_all.columns:
             df_all[f'prev_{col}'] = df_all.groupby('Player')[col].shift(1)
 
     def diff_settings(row):
-        """列出该行相对上一条记录，具体变了哪些设置"""
+        """列出变了哪些设置，数值变化带方向箭头（变高=橙色↑，变低=绿色↓）"""
         changes = []
         for col, label in SETTING_FIELDS.items():
             if col not in df_all.columns:
                 continue
             old, new = row.get(f'prev_{col}'), row.get(col)
             if pd.notnull(old) and pd.notnull(new) and str(old) != str(new):
-                changes.append(f'{label} {old}→{new}')
+                arrow = ''
+                try:
+                    delta = float(new) - float(old)
+                    if delta > 0:
+                        arrow = ' <span style="color:#F39C12;">↑</span>'
+                    elif delta < 0:
+                        arrow = ' <span style="color:#2ECC71;">↓</span>'
+                except (TypeError, ValueError):
+                    pass
+                changes.append(f'{label} {old}→{new}{arrow}')
         return changes
+
+    # 变动类型元数据：图标 / 中文标签 / 强调色
+    TYPE_META = {
+        'MOUSE': {'icon': '🖱️', 'label': '换鼠标', 'color': '#E02020'},
+        'BOTH': {'icon': '🖱️⚙️', 'label': '换鼠标+改设置', 'color': '#E02020'},
+        'SETTINGS': {'icon': '⚙️', 'label': '改设置', 'color': '#3498DB'},
+        'NEW': {'icon': '🆕', 'label': '新增选手', 'color': '#2ECC71'},
+    }
 
     def describe_change(row):
         ctype = str(row['Changed']).strip().upper()
         mouse = row.get('Mouse', '未知')
+        meta = TYPE_META.get(ctype, {'icon': '📝', 'label': '更新', 'color': '#888'})
+        icon = meta['icon']
+
         if ctype == 'MOUSE':
-            return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span>'
-        if ctype == 'BOTH':
+            body = f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span>'
+        elif ctype == 'BOTH':
             detail = '；'.join(diff_settings(row))
             tail = f'（{detail}）' if detail else '（设备与设置同时变动）'
-            return f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span> {tail}'
-        if ctype == 'SETTINGS':
+            body = f'选手 <b>{row["Player"]}</b> 切换至 <span style="color:#E02020;">{mouse}</span> {tail}'
+        elif ctype == 'SETTINGS':
             detail = '；'.join(diff_settings(row))
             tail = f'：{detail}' if detail else '（DPI / 回报率等）'
-            return f'选手 <b>{row["Player"]}</b> 更新了设置{tail}'
-        if ctype == 'NEW':
-            return f'新增选手 <b>{row["Player"]}</b>（<span style="color:#E02020;">{mouse}</span>）'
-        return f'选手 <b>{row["Player"]}</b> 数据有更新'
+            body = f'选手 <b>{row["Player"]}</b> 更新了设置{tail}'
+        elif ctype == 'NEW':
+            body = f'新增选手 <b>{row["Player"]}</b>（<span style="color:#E02020;">{mouse}</span>）'
+        else:
+            body = f'选手 <b>{row["Player"]}</b> 数据有更新'
 
-    # 排序取最近 10 条（差异列已算好，这里再按时间倒序）
-    CHANGE_TYPES = ['MOUSE', 'BOTH', 'SETTINGS', 'NEW']
+        return icon, body
+
+    # 换鼠标 / 改设置 的判定口径，统计卡片和趋势图共用
+    mouse_types = ['MOUSE', 'BOTH']
+    setting_types = ['SETTINGS', 'BOTH']
+
+    # —— 近7天 / 近30天 变化数量统计 ——
+    # 以数据里最新的时间点作为"现在"，避免数据源没实时更新导致统计为0
+    ref_time = df_all['QueryTime'].max()
+    if pd.notnull(ref_time):
+        window_7 = df_all[df_all['QueryTime'] >= ref_time - pd.Timedelta(days=7)]
+        window_30 = df_all[df_all['QueryTime'] >= ref_time - pd.Timedelta(days=30)]
+
+        mouse_7 = window_7['Changed'].isin(mouse_types).sum()
+        setting_7 = window_7['Changed'].isin(setting_types).sum()
+        mouse_30 = window_30['Changed'].isin(mouse_types).sum()
+        setting_30 = window_30['Changed'].isin(setting_types).sum()
+
+        stat_c1, stat_c2, stat_c3, stat_c4 = st.columns(4)
+        with stat_c1:
+            st.markdown(
+                f'<div class="metric-box"><small>近7天换鼠标</small><br>'
+                f'<span style="font-size:28px; color:#E02020; font-weight:bold;">{mouse_7}</span></div>',
+                unsafe_allow_html=True)
+        with stat_c2:
+            st.markdown(
+                f'<div class="metric-box"><small>近7天改设置</small><br>'
+                f'<span style="font-size:28px; color:#3498DB; font-weight:bold;">{setting_7}</span></div>',
+                unsafe_allow_html=True)
+        with stat_c3:
+            st.markdown(
+                f'<div class="metric-box"><small>近30天换鼠标</small><br>'
+                f'<span style="font-size:28px; color:#E02020; font-weight:bold;">{mouse_30}</span></div>',
+                unsafe_allow_html=True)
+        with stat_c4:
+            st.markdown(
+                f'<div class="metric-box"><small>近30天改设置</small><br>'
+                f'<span style="font-size:28px; color:#3498DB; font-weight:bold;">{setting_30}</span></div>',
+                unsafe_allow_html=True)
+
+        st.caption(f"📌 统计截至数据最新时间点：{ref_time.strftime('%Y-%m-%d %H:%M')}（换鼠标含 MOUSE+BOTH，改设置含 SETTINGS+BOTH，同时换鼠标又改设置会同时计入两边）")
+
+    # —— 变动数量趋势折线图（按周统计）——
+    st.markdown(
+        "<h3 style='font-size:18px; color:#FFFFFF; border:none; padding:0; margin:20px 0 10px 0;'>📈 变动数量趋势（按周统计）</h3>",
+        unsafe_allow_html=True
+    )
+
+    trend_e = df_all.dropna(subset=['QueryTime']).copy()
+    if not trend_e.empty:
+        trend_e['WeekStart'] = trend_e['QueryTime'].dt.to_period('W').dt.start_time
+        trend_e['is_mouse_change'] = trend_e['Changed'].isin(mouse_types)
+        trend_e['is_setting_change'] = trend_e['Changed'].isin(setting_types)
+
+        weekly = trend_e.groupby('WeekStart').agg(
+            换鼠标=('is_mouse_change', 'sum'),
+            改设置=('is_setting_change', 'sum'),
+        ).reset_index()
+
+        weekly_long = weekly.melt(
+            id_vars='WeekStart', value_vars=['换鼠标', '改设置'],
+            var_name='类型', value_name='次数'
+        )
+
+        fig_change_trend = px.line(
+            weekly_long, x='WeekStart', y='次数', color='类型',
+            markers=True,
+            color_discrete_map={'换鼠标': '#E02020', '改设置': '#3498DB'}
+        )
+        fig_change_trend.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            font_color="#FFFFFF", height=320, margin=dict(l=0, r=0, t=10, b=0),
+            xaxis=dict(title="", gridcolor='#222', tickfont=dict(color='#FFFFFF')),
+            yaxis=dict(title="", gridcolor='#222', tickfont=dict(color='#FFFFFF')),
+            legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#FFFFFF'), orientation='h', y=-0.25)
+        )
+        st.plotly_chart(fig_change_trend, use_container_width=True, config={'displayModeBar': False})
+    else:
+        st.info("暂无足够数据生成趋势图")
+
+    st.write("")
+
+    # —— 类型筛选 ——
+    filter_options = {v['label']: k for k, v in TYPE_META.items()}
+    selected_labels = st.multiselect(
+        "筛选变动类型",
+        options=list(filter_options.keys()),
+        default=list(filter_options.keys()),
+        key='change_type_filter'
+    )
+    selected_types = [filter_options[l] for l in selected_labels]
+
+    # —— 最近 100 条，放进固定高度的可滚动容器 ——
     changed_list = (
-        df_all[df_all['Changed'].isin(CHANGE_TYPES)]
+        df_all[df_all['Changed'].isin(selected_types)]
         .sort_values('QueryTime', ascending=False)
-        .head(10)
+        .head(100)
     )
 
     if not changed_list.empty:
-        for _, row in changed_list.iterrows():
-            time_str = row['QueryTime'].strftime('%Y-%m-%d %H:%M') if pd.notnull(row['QueryTime']) else "N/A"
-            st.markdown(f"""
-                <div class="change-log">
-                    <span style="color:#666; font-size:12px;">{time_str}</span><br>
-                    {describe_change(row)}
-                </div>
-            """, unsafe_allow_html=True)
+        st.caption(f"共 {len(changed_list)} 条（最多显示最近100条），框内可滚动查看")
+        with st.container(height=500):
+            for _, row in changed_list.iterrows():
+                time_str = row['QueryTime'].strftime('%Y-%m-%d %H:%M') if pd.notnull(row['QueryTime']) else "N/A"
+                icon, body = describe_change(row)
+                st.markdown(f"""
+                    <div class="change-log">
+                        <span style="color:#666; font-size:12px;">{time_str}</span><br>
+                        <span style="font-size:16px;">{icon}</span> {body}
+                    </div>
+                """, unsafe_allow_html=True)
     else:
-        st.info("目前监测中... 暂无近期设备变更记录。")
+        st.info("没有匹配所选类型的变动记录。")
 
 
 if __name__ == "__main__":
