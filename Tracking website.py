@@ -691,10 +691,10 @@ def main():
                             font_color="#E0E0E0", height=300, margin=dict(l=0, r=0, t=0, b=0),
                             legend=dict(font=dict(size=18, color="#FFFFFF")))
         st.plotly_chart(fig_p, use_container_width=True, config={'displayModeBar': False})
-    # --- D2. 品牌趋势折线图 ---
+   # --- D2. 品牌趋势 / 流失率（按钮切换）---
     st.markdown("<h2>📈 品牌使用趋势</h2>", unsafe_allow_html=True)
 
-    # 游戏切换（放在图上方）
+    # 游戏切换（放在图上方，两个视图共用）
     game_sel_t = st.radio(
         "游戏", ["全部", "CS2", "Valorant"],
         horizontal=True, key="trend_game_radio",
@@ -715,57 +715,197 @@ def main():
 
     records = []
     active_days = 350  # 只算最近 350 天还有记录的选手（和飞书口径一致）
+    monthly_snapshots = {}  # 每月快照（选手+品牌），流失率计算要复用
     for m in months:
         # 截止到这个月底，每个选手最后一次的记录 = 他此刻在用的
         snap = df_trend[df_trend['QueryTime'] <= m].drop_duplicates('Player', keep='last')
         # 活跃过滤：只留最后一次记录在近 active_days 天内的选手
         snap = snap[snap['QueryTime'] >= m - pd.Timedelta(days=active_days)]
+        monthly_snapshots[m] = snap[['Player', 'Brand']].copy()
         # 数每个品牌多少人
         brand_counts = snap['Brand'].value_counts()
         for brand, cnt in brand_counts.items():
             records.append({'Date': m, 'Brand': brand, 'Count': cnt})
 
     brand_trend = pd.DataFrame(records)
+    top_brands = df_trend['Brand'].value_counts().head(5).index.tolist()
 
-    # 没数据时兜底，避免下面 value_counts / 画图报错
-    if brand_trend.empty:
-        st.info(f"无 {game_sel_t} 的品牌趋势数据")
+    # —— 视图切换按钮：使用人数 / 流失率 ——
+    if 'brand_trend_view' not in st.session_state:
+        st.session_state['brand_trend_view'] = 'count'
+
+    bt_c1, bt_c2, _ = st.columns([1, 1, 4])
+    with bt_c1:
+        if st.button(
+                "📈 使用人数",
+                key='btn_view_count',
+                use_container_width=True,
+                type="primary" if st.session_state['brand_trend_view'] == 'count' else "secondary"
+        ):
+            st.session_state['brand_trend_view'] = 'count'
+            st.rerun()
+    with bt_c2:
+        if st.button(
+                "📉 流失率",
+                key='btn_view_churn',
+                use_container_width=True,
+                type="primary" if st.session_state['brand_trend_view'] == 'churn' else "secondary"
+        ):
+            st.session_state['brand_trend_view'] = 'churn'
+            st.rerun()
+
+    # ===== 视图一：使用人数 =====
+    if st.session_state['brand_trend_view'] == 'count':
+        if brand_trend.empty:
+            st.info(f"无 {game_sel_t} 的品牌趋势数据")
+        else:
+            brand_trend_top = brand_trend[brand_trend['Brand'].isin(top_brands)]
+
+            fig_line = px.line(
+                brand_trend_top,
+                x='Date',
+                y='Count',
+                color='Brand',
+                markers=True,
+                color_discrete_map=BRAND_COLORS
+            )
+            fig_line.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font_color="#FFFFFF",
+                height=350,
+                margin=dict(l=0, r=0, t=30, b=0),
+                xaxis=dict(gridcolor='#222', tickfont=dict(color='#FFFFFF')),
+                yaxis=dict(gridcolor='#222', title=None,
+                           tickfont=dict(color='#FFFFFF')),
+                legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#FFFFFF'))
+            )
+            fig_line.add_annotation(
+                text="使用人数",
+                xref="paper", yref="paper",
+                x=0, y=1.05,
+                showarrow=False,
+                font=dict(color="#FFFFFF", size=13),
+                xanchor="left"
+            )
+            st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
+        st.caption("📌 统计口径:仅统计近350天内仍有更新记录(即近期仍活跃)的选手,长期未更新/退役选手不计入")
+
+    # ===== 视图二：流失率 =====
     else:
-        # 只展示 Top 5 品牌
-        top_brands = df_trend['Brand'].value_counts().head(5).index.tolist()
-        brand_trend = brand_trend[brand_trend['Brand'].isin(top_brands)]
+        st.caption("流失率 = 两个月共同活跃样本中，上月使用该品牌但本月转用其他品牌的选手数 ÷ 上月该品牌共同样本人数。"
+                   "仅统计两个月均有记录的选手，排除因样本变化或超过350天未更新造成的自然流失")
 
-        fig_line = px.line(
-            brand_trend,
-            x='Date',
-            y='Count',
-            color='Brand',
-            markers=True,
-            color_discrete_map=BRAND_COLORS
-        )
-        fig_line.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font_color="#FFFFFF",
-            height=350,
-            margin=dict(l=0, r=0, t=30, b=0),
-            xaxis=dict(gridcolor='#222', tickfont=dict(color='#FFFFFF')),
-            yaxis=dict(gridcolor='#222', title=None,
-                       tickfont=dict(color='#FFFFFF')),
-            legend=dict(bgcolor='rgba(0,0,0,0)', font=dict(color='#FFFFFF'))
-        )
+        sorted_months = sorted(monthly_snapshots.keys())
 
-        fig_line.add_annotation(
-            text="使用人数",
-            xref="paper", yref="paper",
-            x=0, y=1.05,  # 左上角，Y轴上方
-            showarrow=False,
-            font=dict(color="#FFFFFF", size=13),
-            xanchor="left"
-        )
+        if len(sorted_months) < 2 or not top_brands:
+            st.info("数据月份不足，暂无法计算流失率")
+        else:
+            churn_records = []
 
-        st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
-    st.caption("📌 统计口径:仅统计近350天内仍有更新记录(即近期仍活跃)的选手,长期未更新/退役选手不计入")
+            for i in range(1, len(sorted_months)):
+                prev_m, cur_m = sorted_months[i - 1], sorted_months[i]
+                prev_snap = monthly_snapshots[prev_m]
+                cur_snap = monthly_snapshots[cur_m]
+
+                # 两个月共同出现的选手
+                common_players = set(prev_snap['Player']) & set(cur_snap['Player'])
+
+                if not common_players:
+                    continue
+
+                # 只保留共同样本
+                prev_common = prev_snap[prev_snap['Player'].isin(common_players)].copy()
+                cur_common = cur_snap[cur_snap['Player'].isin(common_players)].copy()
+
+                # Player -> Brand
+                prev_brand_map = dict(zip(prev_common['Player'], prev_common['Brand']))
+                cur_brand_map = dict(zip(cur_common['Player'], cur_common['Brand']))
+
+                for brand in top_brands:
+                    # 上月共同样本中使用该品牌的选手
+                    prev_players = {
+                        player for player, player_brand in prev_brand_map.items()
+                        if player_brand == brand
+                    }
+
+                    if not prev_players:
+                        continue
+
+                    # 其中本月已经不再使用该品牌的选手
+                    churned_players = {
+                        player for player in prev_players
+                        if cur_brand_map.get(player) != brand
+                    }
+
+                    churn_rate = len(churned_players) / len(prev_players) * 100
+
+                    churn_records.append({
+                        'Date': cur_m,
+                        'Brand': brand,
+                        'ChurnRate': round(churn_rate, 1),
+                        'Base': len(prev_players),
+                        'Churned': len(churned_players)
+                    })
+
+            churn_df = pd.DataFrame(churn_records)
+
+            if churn_df.empty:
+                st.info("暂无足够数据计算流失率")
+            else:
+                fig_churn = px.line(
+                    churn_df,
+                    x='Date',
+                    y='ChurnRate',
+                    color='Brand',
+                    markers=True,
+                    color_discrete_map=BRAND_COLORS
+                )
+
+                fig_churn.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font_color="#FFFFFF",
+                    height=350,
+                    margin=dict(l=0, r=0, t=30, b=0),
+                    xaxis=dict(
+                        gridcolor='#222',
+                        tickfont=dict(color='#FFFFFF')
+                    ),
+                    yaxis=dict(
+                        gridcolor='#222',
+                        title=None,
+                        ticksuffix='%',
+                        tickfont=dict(color='#FFFFFF'),
+                        range=[0, 100]
+                    ),
+                    legend=dict(
+                        bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#FFFFFF')
+                    )
+                )
+
+                fig_churn.add_annotation(
+                    text="流失率(%)",
+                    xref="paper",
+                    yref="paper",
+                    x=0,
+                    y=1.05,
+                    showarrow=False,
+                    font=dict(color="#FFFFFF", size=13),
+                    xanchor="left"
+                )
+
+                st.plotly_chart(
+                    fig_churn,
+                    use_container_width=True,
+                    config={'displayModeBar': False}
+                )
+
+                st.caption(
+                    "📌 统计口径：仅比较连续两个月均有记录的共同活跃选手，"
+                    "因此排除因选手退出350天有效样本造成的自然流失。"
+                )
 
     # --- D3. 鼠标型号趋势对比（多组：组内合并 + 组间对比）---
     import re
