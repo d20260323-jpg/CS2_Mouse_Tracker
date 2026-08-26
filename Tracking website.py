@@ -85,8 +85,8 @@ def clean_numeric_fields(df):
 
 
 # 图片路径
-EXCEL_PATH = r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_tracking.xlsx" # r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_tracking.xlsx"
-ZOWIE_LOGO_PATH = r"C:\Users\donny.d.huang\Desktop\zowie_logo.png" # r"C:\Users\donny.d.huang\Desktop\zowie_logo.png"
+EXCEL_PATH = "\FPS_mouse_tracking.xlsx" # r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_tracking.xlsx"
+ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
 
 # ── 表二：鼠标规格主表（每行一款鼠标 + 完整参数）──
 SPEC_EXCEL_PATH = "mouseCatalog.xlsx" #r"C:\Users\donny.d.huang\Desktop\mouseCatalog.xlsx"  # ← 改成你表二的真实文件名！
