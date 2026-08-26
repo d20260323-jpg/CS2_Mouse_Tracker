@@ -85,11 +85,11 @@ def clean_numeric_fields(df):
 
 
 # 图片路径
-EXCEL_PATH = "FPS_mouse_tracking.xlsx" # r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_tracking.xlsx"
-ZOWIE_LOGO_PATH = "assets/zowie_logo.png" # r"C:\Users\donny.d.huang\Desktop\zowie_logo.png"
+EXCEL_PATH = r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_tracking.xlsx" # r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_tracking.xlsx"
+ZOWIE_LOGO_PATH = r"C:\Users\donny.d.huang\Desktop\zowie_logo.png" # r"C:\Users\donny.d.huang\Desktop\zowie_logo.png"
 
 # ── 表二：鼠标规格主表（每行一款鼠标 + 完整参数）──
-SPEC_EXCEL_PATH = "mouseCatalog.xlsx" #r"C:\Users\donny.d.huang\Desktop\mouseCatalog.xlsx"  # ← 改成你表二的真实文件名！
+SPEC_EXCEL_PATH = r"C:\Users\donny.d.huang\Desktop\mouseCatalog.xlsx" #r"C:\Users\donny.d.huang\Desktop\mouseCatalog.xlsx"  # ← 改成你表二的真实文件名！
 
 
 @st.cache_data(ttl=300)
@@ -431,6 +431,65 @@ st.markdown("""
     box-shadow: 0 0 0 1px #E02020 !important;
     cursor: pointer !important;
 }
+
+/* ===== 顶部快速导航 ===== */
+.quick-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 0 25px 0;
+    padding: 10px 0;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: #050505;
+}
+
+.quick-nav a {
+    display: inline-block;
+    padding: 8px 14px;
+    background: #151515;
+    border: 1px solid #252525;
+    border-radius: 6px;
+    color: #BDBDBD !important;
+    text-decoration: none !important;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.quick-nav a:hover {
+    color: #FFFFFF !important;
+    border-color: #E02020;
+    background: #1E1E1E;
+}
+/* ===== 回到顶部按钮 ===== */
+.back-to-top {
+    position: fixed;
+    right: 25px;
+    bottom: 25px;
+    z-index: 9999;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #151515;
+    border: 1px solid #444;
+    border-radius: 50%;
+    color: #FFFFFF !important;
+    text-decoration: none !important;
+    font-size: 20px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    transition: all 0.2s ease;
+}
+
+.back-to-top:hover {
+    background: #E02020;
+    border-color: #E02020;
+    transform: translateY(-3px);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -513,6 +572,8 @@ def format_month_option(d):
 # 3. 网页主结构
 # ==========================================
 def main():
+    st.markdown('<div id="top"></div>', unsafe_allow_html=True)
+
     # --- A. 导航栏 (Logo) ---
     logo_b64 = get_base64_image(ZOWIE_LOGO_PATH)
     if logo_b64:
@@ -520,7 +581,6 @@ def main():
     else:
         st.markdown('<h2 style="color:#E02020; margin:0; border:none;">ZOWIE</h2>', unsafe_allow_html=True)
 
-    # --- B. Hero 视觉区 ---
     # --- B. Hero 视觉区 ---
     st.markdown('<div class="hero-container">', unsafe_allow_html=True)
     st.markdown("""
@@ -533,6 +593,28 @@ def main():
         </div>
     """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # ===== 顶部快速导航 =====
+    st.markdown("""
+    <div class="quick-nav">
+        <a href="#section-briefing">📰 市场简报</a>
+        <a href="#section-hot-models">🔥 热门型号</a>
+        <a href="#section-brand-trend">📈 品牌趋势</a>
+        <a href="#section-mouse-trend">🖱️ 鼠标使用趋势</a>
+        <a href="#section-settings-hardware">📊 设置与硬件</a>
+        <a href="#section-physical">🖱️ 物理属性</a>
+        <a href="#section-player-evolution">👤 选手演变</a>
+        <a href="#section-cross-analysis">🔀 交叉分析</a>
+        <a href="#section-spec-compare">🔧 鼠标对比</a>
+        <a href="#section-change-log">🔄 最近变动</a>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ===== 回到顶部按钮 =====
+    st.markdown(
+        '<a href="#top" class="back-to-top" title="回到顶部">↑</a>',
+        unsafe_allow_html=True
+    )
 
     # 加载数据
     df_all, df_latest = load_data()
@@ -562,6 +644,7 @@ def main():
             unsafe_allow_html=True
         )
 
+    st.markdown('<div id="section-briefing"></div>', unsafe_allow_html=True)
     st.markdown("<h2>📰 市场简报</h2>", unsafe_allow_html=True)
 
     briefings = load_briefings()  # 已按时间倒序，最新在最前
@@ -647,7 +730,8 @@ def main():
     chart_col1, chart_col2 = st.columns(2)
 
     with chart_col1:
-        st.markdown(f"<h2>🔥 热门型号（{sel_month.strftime('%Y-%m')}）</h2>", unsafe_allow_html=True)
+        st.markdown('<div id="section-hot-models"></div>', unsafe_allow_html=True)
+        st.markdown("<h2>🔥 热门型号</h2>", unsafe_allow_html=True)
         top_data = snap_d['Mouse'].value_counts().head(5).reset_index()
         top_data.columns = ['Mouse', 'count']
         fig = px.bar(top_data, y='Mouse', x='count', orientation='h', text='count',
@@ -660,7 +744,8 @@ def main():
 
     with chart_col2:
 
-        st.markdown(f"<h2>🏢 品牌占比（{sel_month.strftime('%Y-%m')}）</h2>", unsafe_allow_html=True)
+        st.markdown('<div id="section-briefing"></div>', unsafe_allow_html=True)
+        st.markdown("<h2>📰 市场简报</h2>", unsafe_allow_html=True)
         brand_data = snap_d['Brand'].value_counts().reset_index()
         brand_data.columns = ['Brand', 'count']
 
@@ -691,7 +776,9 @@ def main():
                             font_color="#E0E0E0", height=300, margin=dict(l=0, r=0, t=0, b=0),
                             legend=dict(font=dict(size=18, color="#FFFFFF")))
         st.plotly_chart(fig_p, use_container_width=True, config={'displayModeBar': False})
-   # --- D2. 品牌趋势 / 流失率（按钮切换）---
+
+    # --- D2. 品牌趋势 / 流失率（按钮切换）---
+    st.markdown('<div id="section-brand-trend"></div>', unsafe_allow_html=True)
     st.markdown("<h2>📈 品牌使用趋势</h2>", unsafe_allow_html=True)
 
     # 游戏切换（放在图上方，两个视图共用）
@@ -946,6 +1033,7 @@ def main():
     # 注：Brand 已在 load_data 中通过 resolve_brand 统一设好（含大小写/简称/误判修正），
     # 此处不再重算，避免用更弱的逻辑把干净的 Brand 覆盖回脏值。
 
+    st.markdown('<div id="section-mouse-trend"></div>', unsafe_allow_html=True)
     st.markdown("<h2>🔍 鼠标型号趋势对比</h2>", unsafe_allow_html=True)
 
     # 游戏切换（放在图上方，过滤下面所有型号列表与趋势）
@@ -1184,6 +1272,7 @@ def main():
         st.info("请先输入鼠标关键词并选择型号")
 
     # --- D4. 设置维度分布（eDPI / 回报率 / 重量）---
+    st.markdown('<div id="section-settings-hardware"></div>', unsafe_allow_html=True)
     st.markdown("<h2>📊 设置与硬件分布</h2>", unsafe_allow_html=True)
 
     # 游戏切换（整个模块联动，放在时间选择上方）
@@ -1294,6 +1383,7 @@ def main():
             st.info(f"无 {game_sel} 的重量数据")
 
     # --- D4-A. 物理属性分布：形状 / 尺寸 / 连接方式（ID设计师视角）---
+    st.markdown('<div id="section-physical"></div>', unsafe_allow_html=True)
     st.markdown("<h2>🖱️ 鼠标物理属性分布</h2>", unsafe_allow_html=True)
     st.caption("职业选手当前在用鼠标的物理设计特征分布，供硬件设计参考")
 
@@ -1383,6 +1473,7 @@ def main():
             st.info("无连接方式数据")
 
     # --- D5. 选手三年装备时间线 ---
+    st.markdown('<div id="section-player-evolution"></div>', unsafe_allow_html=True)
     st.markdown("<h2>👤 选手装备演变</h2>", unsafe_allow_html=True)
 
     all_players = sorted(df_all['Player'].dropna().unique().tolist())
@@ -1420,6 +1511,7 @@ def main():
             st.info(f"暂无 {sel_player} 的记录")
 
     # --- D6+D8 合并：自由交叉分析（数字表 + 热力图 双视图）---
+    st.markdown('<div id="section-cross-analysis"></div>', unsafe_allow_html=True)
     st.markdown("<h2>🔀 自由交叉分析</h2>", unsafe_allow_html=True)
     st.caption("自选两个维度：上方看精确人数（表格），下方看扎堆/空白（热力图）。如 品牌×回报率：看哪个品牌爱用高刷")
 
@@ -1673,9 +1765,10 @@ def main():
         st.plotly_chart(fig_ct, use_container_width=True, config={'displayModeBar': False})
         st.caption("⚠️ 空白格有两种含义：真空白(市场机会) 或 不合理组合(如超重+超小)，需结合设计经验判断")
 
-    # --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
+    # --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---# --- D7. 鼠标规格对比器（搜索逐个加入 → 参数并排对比）---
+    st.markdown('<div id="section-spec-compare"></div>', unsafe_allow_html=True)
     st.markdown("<h2>🔧 鼠标规格对比</h2>", unsafe_allow_html=True)
-    st.caption("搜索并逐个添加鼠标，横向对比物理规格参数，供硬件设计/竞品分析参考")
+    st.caption("搜索并逐个添加鼠标，横向对比物理规格参数，供硬件设计/竞品分析参考,数据来源 Eloshapes:https://www.eloshapes.com/mouse/browse?view=table")
 
     spec_cols = [
         'brand', 'weight', 'size', 'shape', 'length', 'width', 'height',
@@ -1775,9 +1868,8 @@ def main():
     else:
         st.info("搜索并添加鼠标后，这里会显示参数对比表")
 
-
-
-# --- E. 变动快讯（显示具体变更内容）---
+    # --- E. 变动快讯（显示具体变更内容）---
+    st.markdown('<div id="section-change-log"></div>', unsafe_allow_html=True)
     st.markdown("<h2>🔄 最近变动动态</h2>", unsafe_allow_html=True)
 
     df_all['Changed'] = df_all['Changed'].astype(str).str.strip().str.upper()
