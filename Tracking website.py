@@ -85,7 +85,7 @@ def clean_numeric_fields(df):
 
 
 # 图片路径
-EXCEL_PATH = "\FPS_mouse_tracking.xlsx" # r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_tracking.xlsx"
+EXCEL_PATH = "FPS_mouse_tracking.xlsx" # r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_tracking.xlsx"
 ZOWIE_LOGO_PATH = "assets/zowie_logo.png"
 
 # ── 表二：鼠标规格主表（每行一款鼠标 + 完整参数）──
