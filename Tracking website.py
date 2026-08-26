@@ -89,7 +89,7 @@ EXCEL_PATH = r"C:\Users\donny.d.huang\.openclaw\workspace\memory\FPS_mouse_track
 ZOWIE_LOGO_PATH = r"C:\Users\donny.d.huang\Desktop\zowie_logo.png" # r"C:\Users\donny.d.huang\Desktop\zowie_logo.png"
 
 # ── 表二：鼠标规格主表（每行一款鼠标 + 完整参数）──
-SPEC_EXCEL_PATH = r"C:\Users\donny.d.huang\Desktop\mouseCatalog.xlsx" #r"C:\Users\donny.d.huang\Desktop\mouseCatalog.xlsx"  # ← 改成你表二的真实文件名！
+SPEC_EXCEL_PATH = "mouseCatalog.xlsx" #r"C:\Users\donny.d.huang\Desktop\mouseCatalog.xlsx"  # ← 改成你表二的真实文件名！
 
 
 @st.cache_data(ttl=300)
