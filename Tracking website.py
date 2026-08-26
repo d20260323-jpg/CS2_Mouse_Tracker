@@ -745,7 +745,7 @@ def main():
     with chart_col2:
 
         st.markdown('<div id="section-briefing"></div>', unsafe_allow_html=True)
-        st.markdown("<h2>📰 市场简报</h2>", unsafe_allow_html=True)
+        st.markdown("<h2>🏷️ 品牌占比</h2>", unsafe_allow_html=True)
         brand_data = snap_d['Brand'].value_counts().reset_index()
         brand_data.columns = ['Brand', 'count']
 
