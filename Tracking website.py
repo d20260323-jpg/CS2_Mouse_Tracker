@@ -995,6 +995,7 @@ def main():
                 )
 
     # --- D3. 鼠标型号趋势对比（多组：组内合并 + 组间对比）---
+    # --- D3. 鼠标型号趋势对比（多组：组内合并 + 组间对比）---
     import re
 
     def normalize_mouse_name(mouse):
@@ -1061,7 +1062,7 @@ def main():
     if 'trend_groups' not in st.session_state:
         latest_snap = df_m.drop_duplicates('Player', keep='last')
         latest_snap = latest_snap[latest_snap['QueryTime'] >= end_all - pd.Timedelta(days=350)]
-        top1 = latest_snap['Mouse'].value_counts().head(1).index.tolist()
+        top1 = latest_snap['Mouse_Normalized'].value_counts().head(1).index.tolist()
         st.session_state['trend_groups'] = [{'id': 0, 'name': '', 'mice': top1}]
         st.session_state['trend_group_id_counter'] = 1
 
@@ -1095,17 +1096,33 @@ def main():
             if st.button("取消", key=f"cancel_clear_{target_gid}", use_container_width=True):
                 st.rerun()
 
-    cc1, cc2, _ = st.columns([1, 1, 4])
+    st.caption("默认显示当前使用频率最高的鼠标型号，如需自定义对比，请先清除默认组。")
+
+    cc1, cc2, cc3, _ = st.columns([1.4, 1.2, 1, 3.4])
+
     with cc1:
-        if st.button("➕ 添加对比鼠标"):
+        if st.button("➕ 添加鼠标进行对比", use_container_width=True):
             new_id = st.session_state['trend_group_id_counter']
-            st.session_state['trend_groups'].append({'id': new_id, 'name': '', 'mice': []})
+            st.session_state['trend_groups'].append({
+                'id': new_id,
+                'name': '',
+                'mice': []
+            })
             st.session_state['trend_group_id_counter'] += 1
             st.rerun()
 
     with cc2:
-        if st.button("🗑 清空所有组"):
+        if st.button("✕ 清除默认组", use_container_width=True):
+            st.session_state['trend_groups'] = [
+                g for g in st.session_state['trend_groups']
+                if g['id'] != 0
+            ]
+            st.rerun()
+
+    with cc3:
+        if st.button("🗑 清空所有组", use_container_width=True):
             confirm_clear_all_groups()
+
 
     group_to_delete = None
 
@@ -1135,7 +1152,7 @@ def main():
         # ★修复2：expander用固定的key（绑定gid），不再依赖会变化的标题文字
         expander_key = f"expander_{gid}"
         if expander_key not in st.session_state:
-            st.session_state[expander_key] = True
+            st.session_state[expander_key] = False if gid == 0 else True
 
         with st.expander(
                 f"[点击收起]\n📊 {display_name}（已选 {len(group['mice'])} 个型号）",
